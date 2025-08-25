@@ -17,7 +17,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Get frontend URL from environment variables
-  const frontendUrl = configService.get<string>("FRONTEND_URL", "http://localhost:6000");
+  const frontendUrl = configService.get<string>("FRONTEND_URL", "http://localhost:4000");
 
   // Configure CORS FIRST before any other middleware
   app.enableCors({
@@ -26,10 +26,10 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [
-        "http://localhost:6000",
+        "http://localhost:4000",
         "http://localhost:3000",
         "http://localhost:8080",
-        "http://127.0.0.1:6000",
+        "http://127.0.0.1:4000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8080",
         frontendUrl,
@@ -126,7 +126,7 @@ async function bootstrap() {
     },
   });
 
-  const port = configService.get("PORT", 6001);
+  const port = configService.get("PORT", 4001);
   await app.listen(port);
   const baseUrl = await app.getUrl();
   console.log(`Application is running on: ${baseUrl}`);

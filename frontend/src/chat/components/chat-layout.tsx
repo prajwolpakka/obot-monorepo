@@ -290,7 +290,7 @@ const ChatLayout = () => {
                                     <div className="flex-shrink-0 mt-1">
                                       {conversation.chatbot?.iconUrl ? (
                                         <img
-                                          src={`${import.meta.env.VITE_API_URL || "http://localhost:6001"}${conversation.chatbot.iconUrl}`}
+                                          src={`${import.meta.env.VITE_API_URL || "http://localhost:4001"}${conversation.chatbot.iconUrl}`}
                                           alt={conversation.chatbot.name || "Bot"}
                                           className="h-8 w-8 rounded-md border"
                                         />

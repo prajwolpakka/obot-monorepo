@@ -43,7 +43,7 @@ def root():
 
 if __name__ == "__main__":
     host = os.getenv("AI_HOST", "0.0.0.0")
-    port = int(os.getenv("AI_PORT", "6002"))
+    port = int(os.getenv("AI_PORT", "4002"))
     logger.info(f"Starting the server on {host}:{port}...")
     uvicorn.run(app="main:app", host=host, port=port, reload=True)
     logger.info("Server started successfully")

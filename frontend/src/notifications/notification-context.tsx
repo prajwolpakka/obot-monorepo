@@ -32,7 +32,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(`${import.meta.env.VITE_API_URL || "http://localhost:6001"}/notifications`, {
+    const newSocket = io(`${import.meta.env.VITE_API_URL || "http://localhost:4001"}/notifications`, {
       autoConnect: true,
     });
 

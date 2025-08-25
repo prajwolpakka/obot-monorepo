@@ -34,7 +34,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       return;
     }
 
-    const newSocket = io(import.meta.env.VITE_API_URL || "http://localhost:6001", {
+    const newSocket = io(import.meta.env.VITE_API_URL || "http://localhost:4001", {
       withCredentials: true, // This sends cookies automatically
       transports: ["websocket", "polling"],
     });

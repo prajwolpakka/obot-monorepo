@@ -60,7 +60,7 @@ export class MailService {
 
   async sendVerificationEmail(to: string, name: string, token: string): Promise<void> {
     try {
-      const appUrl = this.configService.get("FRONTEND_URL") || "http://localhost:6000";
+      const appUrl = this.configService.get("FRONTEND_URL") || "http://localhost:4000";
       const verificationUrl = `${appUrl}/verify-account/${token}`;
 
       if (this.isDevelopment) {
@@ -93,7 +93,7 @@ export class MailService {
 
   async sendPasswordResetEmail(to: string, name: string, token: string): Promise<void> {
     try {
-      const appUrl = this.configService.get("FRONTEND_URL") || "http://localhost:6000";
+      const appUrl = this.configService.get("FRONTEND_URL") || "http://localhost:4000";
       const resetUrl = `${appUrl}/reset-password/${token}`;
 
       await this.transporter.sendMail({

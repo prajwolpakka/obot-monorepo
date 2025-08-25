@@ -23,7 +23,7 @@ export class DocumentsService {
     private notificationGateway: NotificationGateway,
     private embeddingStatusGateway: EmbeddingStatusGateway
   ) {
-    this.brainApiUrl = this.configService.get<string>("BRAIN_API_URL", "http://localhost:6002");
+    this.brainApiUrl = this.configService.get<string>("BRAIN_API_URL", "http://localhost:4002");
     this.logger.log(`🧠 Brain API URL configured: ${this.brainApiUrl}`);
   }
 
@@ -176,7 +176,7 @@ export class DocumentsService {
   }
 
   private getBackendUrl(): string {
-    return this.configService.get<string>("BACKEND_URL", "http://localhost:6001");
+    return this.configService.get<string>("BACKEND_URL", "http://localhost:4001");
   }
 
   async findAll(userId: string): Promise<Document[]> {

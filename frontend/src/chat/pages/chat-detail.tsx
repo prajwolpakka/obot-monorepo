@@ -43,7 +43,7 @@ const ChatDetailPage = () => {
           <div className="flex items-center gap-3">
             {conversation?.chatbot?.iconUrl ? (
               <img
-                src={`${import.meta.env.VITE_API_URL || "http://localhost:6001"}${conversation.chatbot.iconUrl}`}
+                src={`${import.meta.env.VITE_API_URL || "http://localhost:4001"}${conversation.chatbot.iconUrl}`}
                 alt="Bot Avatar"
                 className="w-10 h-10 rounded-full"
               />

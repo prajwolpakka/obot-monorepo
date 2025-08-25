@@ -38,7 +38,7 @@ const CreateChatbotPage: React.FC = () => {
       tone: "casual",
       shouldFollowUp: false,
       triggers: [] as { id: string; value: string }[],
-      allowedDomains: [{ id: new Date().toISOString(), value: "http://localhost:6000/" }],
+      allowedDomains: [{ id: new Date().toISOString(), value: "http://localhost:4000/" }],
       icon: undefined,
       selectedDocuments: [],
       uploadedFiles: [],

@@ -242,7 +242,7 @@ const ChatbotsPage = () => {
                             >
                               {chatbot.iconUrl ? (
                                 <img
-                                  src={`${import.meta.env.VITE_API_URL || "http://localhost:6001"}${chatbot.iconUrl}`}
+                                  src={`${import.meta.env.VITE_API_URL || "http://localhost:4001"}${chatbot.iconUrl}`}
                                   alt={chatbot.name + " logo"}
                                   className="w-full h-full object-cover rounded-full"
                                 />

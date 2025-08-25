@@ -45,7 +45,7 @@
     this.width = options.width || "350px";
     this.height = options.height || "500px";
     this.defaultOpen = options.defaultOpen || false;
-    this.socketUrl = options.socketUrl || "http://localhost:6001";
+    this.socketUrl = options.socketUrl || "http://localhost:4001";
 
     // Internal state
     this.messages = [];
