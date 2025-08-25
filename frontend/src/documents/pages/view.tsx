@@ -35,7 +35,7 @@ const DocumentRenderer: React.FC<{ document: IDocument }> = ({ document }) => {
   const handleDownload = async () => {
     // try {
     //   const documentUrl = `/documents/${document.id}/file`;
-    //   const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8002"}/api${documentUrl}`, {
+    //   const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:6001"}/api${documentUrl}`, {
     //     credentials: "include",
     //   });
     //   if (!response.ok) throw new Error("Download failed");

@@ -14,7 +14,7 @@ export class EmbeddingService {
     private documentRepository: Repository<Document>,
     private configService: ConfigService,
   ) {
-    this.brainApiUrl = this.configService.get<string>('BRAIN_API_URL', 'http://localhost:8001');
+    this.brainApiUrl = this.configService.get<string>('BRAIN_API_URL', 'http://localhost:6002');
   }
 
   async processDocument(documentId: string): Promise<void> {

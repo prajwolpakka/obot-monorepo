@@ -77,6 +77,6 @@ Authorization: Bearer <your-jwt-token>
   .addTag('documents', 'Document upload and management')
   .addTag('subscription', 'User subscription and billing')
   .addTag('dashboard', 'Analytics and dashboard data')
-  .addServer('http://localhost:8001', 'Development server')
+  .addServer('http://localhost:6001', 'Development server')
   .addServer('https://api.yourplatform.com', 'Production server')
   .build();

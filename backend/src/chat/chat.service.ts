@@ -36,7 +36,7 @@ export class ChatService {
     private chatbotDocumentRepository: Repository<ChatbotDocument>,
     private configService: ConfigService,
   ) {
-    this.brainApiUrl = this.configService.get<string>('BRAIN_API_URL', 'http://localhost:8001');
+    this.brainApiUrl = this.configService.get<string>('BRAIN_API_URL', 'http://localhost:6002');
     this.logger.log(`🧠 Brain API URL configured: ${this.brainApiUrl}`);
   }
 

@@ -457,7 +457,7 @@ const ViewChatbotPage = () => {
                     placeholder={isEditing ? form.watch("placeholder") : chatbot.placeholder}
                     height="500px"
                     width="400px"
-                    imageUrl={chatbot.iconUrl ? `http://localhost:8002${chatbot.iconUrl}` : undefined}
+                    imageUrl={chatbot.iconUrl ? `${import.meta.env.VITE_API_URL || "http://localhost:6001"}${chatbot.iconUrl}` : undefined}
                     triggers={
                       isEditing
                         ? form.watch("triggers")?.map((t) => t.value) || []

@@ -117,7 +117,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       />
                     ) : chatbot.iconUrl ? (
                       <img
-                        src={`http://localhost:8002${chatbot.iconUrl}`}
+                        src={`${import.meta.env.VITE_API_URL || "http://localhost:6001"}${chatbot.iconUrl}`}
                         alt="Current icon"
                         className="w-10 h-10 rounded object-cover"
                       />
@@ -148,7 +148,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 {chatbot.iconUrl ? (
                   <div className="flex items-center gap-3">
                     <img
-                      src={`http://localhost:8002${chatbot.iconUrl}`}
+                      src={`${import.meta.env.VITE_API_URL || "http://localhost:6001"}${chatbot.iconUrl}`}
                       alt="Chatbot icon"
                       className="w-8 h-8 rounded object-cover"
                     />

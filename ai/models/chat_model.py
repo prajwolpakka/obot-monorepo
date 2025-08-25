@@ -7,4 +7,4 @@ class ChatRequest(BaseModel):
     context: str = ''
     documents: List[str] = []
     stream: bool = False
-    provider: str = 'gemini'
+    provider: str = 'openrouter'

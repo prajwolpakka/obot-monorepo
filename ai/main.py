@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from utils.logger import logger
 from routes.main_router import main_router
@@ -41,6 +42,8 @@ def root():
 
 
 if __name__ == "__main__":
-    logger.info("Starting the server...")
-    uvicorn.run(app="main:app",host="0.0.0.0",port=8001, reload=True)
+    host = os.getenv("AI_HOST", "0.0.0.0")
+    port = int(os.getenv("AI_PORT", "6002"))
+    logger.info(f"Starting the server on {host}:{port}...")
+    uvicorn.run(app="main:app", host=host, port=port, reload=True)
     logger.info("Server started successfully")

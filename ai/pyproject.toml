@@ -51,6 +51,7 @@ python-multipart = "^0.0.20"
 requests = "^2.32.4"
 google-generativeai = "^0.8.5"
 einops = "^0.8.1"
+httpx = "^0.27.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"

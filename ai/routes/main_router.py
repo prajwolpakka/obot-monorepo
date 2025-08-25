@@ -103,7 +103,7 @@ def check_LLM_health() -> dict:
     logger.info("Starting LLM health check...")
     
     # Get LLM configuration from environment
-    llm_provider = os.getenv('LLM_PROVIDER', 'ollama')
+    llm_provider = os.getenv('LLM_PROVIDER', 'openrouter')
     llm_host = os.getenv('OLLAMA_HOST', 'localhost')
     llm_port = os.getenv('OLLAMA_PORT', '11434')
     
@@ -150,6 +150,29 @@ def check_LLM_health() -> dict:
             else:
                 health_status["connection_status"] = "not_configured"
                 logger.warning("Gemini API key not configured")
+
+        elif llm_provider.lower() == 'openrouter':
+            import requests
+            api_key = os.getenv('OPENROUTER_API_KEY')
+            if not api_key:
+                health_status["connection_status"] = "not_configured"
+                logger.warning("OpenRouter API key not configured")
+            else:
+                headers = {"Authorization": f"Bearer {api_key}"}
+                try:
+                    response = requests.get("https://openrouter.ai/api/v1/models", headers=headers, timeout=10)
+                    if response.status_code == 200:
+                        health_status["connection_status"] = "connected"
+                        models_data = response.json()
+                        models = [m.get("id") for m in models_data.get("data", [])]
+                        health_status["models_available"] = models
+                        logger.info(f"OpenRouter connection successful with {len(models)} models")
+                    else:
+                        health_status["connection_status"] = "failed"
+                        logger.error(f"OpenRouter connection failed with status {response.status_code}")
+                except Exception as e:
+                    health_status["connection_status"] = "failed"
+                    logger.error(f"OpenRouter connection failed: {str(e)}")
         
         # Determine overall status
         if health_status["connection_status"] in ["connected", "configured"]:
@@ -162,8 +185,16 @@ def check_LLM_health() -> dict:
     except Exception as e:
         health_status["overall_status"] = "unhealthy"
         logger.error(f"LLM health check failed: {str(e)}")
-    
+
     return health_status
+
+@main_router.get("/health/qdrant")
+def qdrant_health():
+    return check_qdrant_health()
+
+@main_router.get("/health/llm")
+def llm_health():
+    return check_LLM_health()
 
 @main_router.get("/")
 def read_root():

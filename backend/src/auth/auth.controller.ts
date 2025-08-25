@@ -140,7 +140,7 @@ export class AuthController {
     // Log successful cookie setting (assuming login service does it)
     this.logger.log(`Google callback: Cookie should be set. Redirecting to frontend.`);
 
-    const frontendUrl = this.configService.get("FRONTEND_URL", "http://localhost:8080");
+    const frontendUrl = this.configService.get("FRONTEND_URL", "http://localhost:6000");
 
     // Redirect WITHOUT the token in the URL
     res.redirect(`${frontendUrl}/auth/google/success`);
