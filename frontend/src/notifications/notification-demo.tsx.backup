@@ -1,0 +1,133 @@
+import { Button } from "@/common/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/common/components/ui/card";
+import { Input } from "@/common/components/ui/input";
+import { Label } from "@/common/components/ui/label";
+import { useState } from "react";
+import { toast } from "sonner";
+import api from "../common/services/api";
+
+export const NotificationDemoPage = () => {
+  const [chatbotName, setChatbotName] = useState("");
+  const [documentName, setDocumentName] = useState("");
+  const [daysLeft, setDaysLeft] = useState("7");
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const triggerNotification = async (endpoint: string, data?: any) => {
+    setLoading(endpoint);
+    try {
+      await api.post(`/demo/notifications/${endpoint}`, data);
+      toast.success("Notification sent!");
+    } catch (error) {
+      toast.error("Failed to send notification");
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Notification Demo</h1>
+        <p className="text-muted-foreground">Test the notification system with different types of notifications.</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Simple Notifications</CardTitle>
+            <CardDescription>Trigger basic notification types</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={() => triggerNotification("welcome")} disabled={loading === "welcome"} className="w-full">
+              Send Welcome Notification
+            </Button>
+
+            <Button
+              onClick={() => triggerNotification("maintenance")}
+              disabled={loading === "maintenance"}
+              variant="outline"
+              className="w-full"
+            >
+              Send Maintenance Alert
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Parameterized Notifications</CardTitle>
+            <CardDescription>Notifications with dynamic content</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="chatbot-name">Chatbot Name</Label>
+              <Input
+                id="chatbot-name"
+                value={chatbotName}
+                onChange={(e) => setChatbotName(e.target.value)}
+                placeholder="My Awesome Bot"
+              />
+              <Button
+                onClick={() => triggerNotification(`chatbot-created/${chatbotName}`)}
+                disabled={loading === "chatbot" || !chatbotName}
+                className="w-full"
+              >
+                Send Chatbot Created
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="document-name">Document Name</Label>
+              <Input
+                id="document-name"
+                value={documentName}
+                onChange={(e) => setDocumentName(e.target.value)}
+                placeholder="important-document.pdf"
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => triggerNotification(`document-upload/${documentName}/true`)}
+                  disabled={loading === "doc-success" || !documentName}
+                  size="sm"
+                  className="flex-1"
+                >
+                  Upload Success
+                </Button>
+                <Button
+                  onClick={() => triggerNotification(`document-upload/${documentName}/false`)}
+                  disabled={loading === "doc-error" || !documentName}
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                >
+                  Upload Failed
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="days-left">Days Until Expiry</Label>
+              <Input
+                id="days-left"
+                type="number"
+                value={daysLeft}
+                onChange={(e) => setDaysLeft(e.target.value)}
+                min="1"
+                max="30"
+              />
+              <Button
+                onClick={() => triggerNotification(`subscription-expiry/${daysLeft}`)}
+                disabled={loading === "subscription"}
+                variant="outline"
+                className="w-full"
+              >
+                Send Subscription Alert
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};

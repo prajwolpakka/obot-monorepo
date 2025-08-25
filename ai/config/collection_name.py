@@ -1,0 +1,1 @@
+collection_name = 'obot_documents'

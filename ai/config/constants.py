@@ -1,0 +1,5 @@
+EMBEDDER_MODEL = "nomic-ai/nomic-embed-text-v1.5"
+QDRANT_COLLECTION_NAME = "bot_documents"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+EMBEDDING_DIM = 768 

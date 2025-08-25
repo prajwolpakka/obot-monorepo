@@ -1,0 +1,25 @@
+# Node
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+coverage/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+logs
+*.log
+
+# IDE directories
+.vscode/
+.idea/
+*.swp
+
+# Misc
+.DS_Store
+.ocontext
+.aider*

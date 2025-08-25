@@ -1,0 +1,17 @@
+export const mockUser = {
+  id: "1",
+  email: "test@example.com",
+  password: "$2b$10$example",
+  firstName: "Test",
+  lastName: "User",
+  isEmailVerified: true,
+  activeStoreId: "store-1",
+  activeBranchId: "branch-1",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  stores: [],
+  tokens: [],
+  userStoreRoles: [],
+  activeStore: null as any,
+  activeBranch: null as any,
+};
