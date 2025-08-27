@@ -18,10 +18,10 @@ async def call_llm(chat: ChatRequest):
         if stream:
             # Ensure async generator is being correctly iterated
             async def stream_gen():
-                async for chunk in await generate_response(prompt, provider=provider, stream=True):
+                async for chunk in generate_response(prompt, provider=provider, stream=True):
                     print(f"Yielding chunk on route: {chunk}")
                     yield chunk
-                    await asyncio.sleep(0.02) 
+                    await asyncio.sleep(0.02)
 
             return StreamingResponse(stream_gen(), media_type="text/plain")
 

@@ -221,13 +221,17 @@
 
     // Handle streaming response start
     this.socket.on("message-start", (data) => {
-      // Remove thinking indicator and immediately show message container
-      this.removeThinkingIndicator();
-      this.startStreamingMessage(data.messageId, data.timestamp);
+      // Prepare for incoming chunks but keep thinking indicator until content arrives
+      this.currentStreamId = data.messageId;
     });
 
     // Handle streaming chunks
     this.socket.on("message-chunk", (data) => {
+      // On first chunk, create message container and remove thinking indicator
+      if (!document.getElementById(`streaming-${data.messageId}`)) {
+        this.startStreamingMessage(data.messageId, data.timestamp);
+        this.removeThinkingIndicator();
+      }
       this.updateStreamingMessage(data.messageId, data.chunk, data.fullResponse);
     });
 
@@ -253,6 +257,14 @@
 
     this.socket.on("message-error", (data) => {
       this.removeThinkingIndicator();
+
+      // Remove any streaming placeholder
+      const streamingMessage = data.messageId
+        ? this.messagesDiv.querySelector(`#streaming-${data.messageId}`)
+        : this.messagesDiv.querySelector('[id^="streaming-"]');
+      if (streamingMessage) {
+        streamingMessage.remove();
+      }
 
       // Check if it's a rate limit error
       if (data.error && data.error.includes("429")) {
@@ -775,15 +787,7 @@
     thinkingIndicator.innerHTML = `
       <div class="message-content thinking-message">
         <div class="thinking-indicator">
-          <span class="thinking-spinner" style="
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #666;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          "></span>
+          <span class="thinking-spinner"></span>
           <span class="thinking-text">Thinking...</span>
         </div>
       </div>
@@ -814,16 +818,9 @@
     messageElement.classList.add("message-container", "bot-message");
     messageElement.id = `streaming-${messageId}`;
 
-    // Get the appropriate color
-    let color;
-    if (this.config && this.config.color) {
-      color = this.config.color;
-    } else {
-      color = "#4A2C7E";
-    }
-
+    // Message bubble uses default bot styling (white background)
     messageElement.innerHTML = `
-      <div class="message-content" style="background-color: ${color}; color: white;">
+      <div class="message-content">
         <span id="content-${messageId}"></span>
         <span id="cursor-${messageId}" class="typing-cursor">|</span>
       </div>
@@ -880,24 +877,9 @@
       // Add references if they exist
       if (references && references.length > 0) {
         const messageElement = document.getElementById(`streaming-${messageId}`);
-        const isUserMessage = false; // Bot message
-        const shortRefs = references.map(ref => this.createShortReference(ref, isUserMessage)).join(' ');
-
         const referenceDiv = document.createElement("div");
-        referenceDiv.classList.add("inline-references");
-        referenceDiv.style.cssText = `
-          margin-top: 8px;
-          padding-top: 6px;
-          border-top: 1px solid rgba(255,255,255,0.3);
-          font-size: 11px;
-          opacity: 0.85;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          align-items: center;
-        `;
-        referenceDiv.innerHTML = shortRefs;
-
+        referenceDiv.classList.add("message-references");
+        references.forEach(ref => referenceDiv.appendChild(this.createReferenceItem(ref)));
         messageElement.appendChild(referenceDiv);
       }
 
@@ -938,37 +920,23 @@
       color = "#4A2C7E"; // fallback
     }
 
-    const backgroundStyle = sender === "You" ? `style="background-color: ${color}; color: white;"` : "";
-
-    // Create the message content with inline references
-    let messageContent = answer;
-
-    // Add references inline if they exist
-    if (references && references.length > 0) {
-      const isUserMessage = sender === "You";
-      const shortRefs = references.map(ref => this.createShortReference(ref, isUserMessage)).join(' ');
-
-      // Different styling for bot vs user messages
-      const referenceStyle = sender === "You"
-        ? `border-top: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.8);`
-        : `border-top: 1px solid rgba(74,44,126,0.3); color: rgba(74,44,126,0.8);`;
-
-      messageContent += `<div class="inline-references" style="
-        margin-top: 8px;
-        padding-top: 6px;
-        ${referenceStyle}
-        font-size: 11px;
-        opacity: 0.85;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        align-items: center;
-      ">${shortRefs}</div>`;
+    // Create message content element
+    const contentDiv = document.createElement("div");
+    contentDiv.classList.add("message-content");
+    if (sender === "You") {
+      contentDiv.style.backgroundColor = color;
+      contentDiv.style.color = "white";
     }
+    contentDiv.innerHTML = answer;
+    messageElement.appendChild(contentDiv);
 
-    const messageHTML = `<div class="message-content" ${backgroundStyle}>${messageContent}</div>`;
-
-    messageElement.innerHTML = messageHTML;
+    // Add references below message if they exist
+    if (references && references.length > 0) {
+      const referenceDiv = document.createElement("div");
+      referenceDiv.classList.add("message-references");
+      references.forEach(ref => referenceDiv.appendChild(this.createReferenceItem(ref)));
+      messageElement.appendChild(referenceDiv);
+    }
 
     this.messagesDiv.appendChild(messageElement);
     this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
@@ -977,34 +945,23 @@
     this.updateTriggerButtons();
   };
 
-  // Create shortened reference with hover tooltip
-  Chatbot.prototype.createShortReference = function (fullRef, isUserMessage = false) {
-    // Extract filename from reference (assuming format like "Document Name (Page X)")
-    const fileMatch = fullRef.match(/^([^(\n]+)/);
-    const filename = fileMatch ? fileMatch[1].trim() : fullRef;
+  // Create reference DOM element with icon and filename
+  Chatbot.prototype.createReferenceItem = function (fullRef) {
+    const filenameMatch = fullRef.match(/^([^\n]+)/);
+    const filename = filenameMatch ? filenameMatch[1].trim() : fullRef;
+    const shortName = filename.split(/[\/]/).pop();
 
-    // Create shortened version (lowercase, first 15 chars + extension if available)
-    let shortName = filename.toLowerCase();
-
-    // If it's longer than 15 chars, truncate and add extension if present
-    if (shortName.length > 15) {
-      const extMatch = filename.match(/\.([a-zA-Z0-9]+)$/);
-      const extension = extMatch ? extMatch[1] : '';
-      shortName = shortName.substring(0, 12) + '...' + (extension ? '.' + extension : '');
-    }
-
-    // Return as individual item with icon and proper spacing
-    return `<span class="reference-item" title="${fullRef}" style="
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      cursor: help;
-      border-bottom: 1px dotted rgba(255,255,255,0.5);
-      padding: 2px 6px;
-      border-radius: 3px;
-      transition: opacity 0.2s ease;
-      font-size: 10px;
-    ">📄 ${shortName}</span>`;
+    const item = document.createElement("div");
+    item.classList.add("reference-item");
+    item.title = fullRef;
+    item.innerHTML = `
+      <svg class="reference-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <span class="reference-text">${shortName}</span>
+    `;
+    return item;
   };
 
   // Parse response to separate answer from references
@@ -1025,11 +982,14 @@
     if (referencesText.toLowerCase().startsWith('sources:')) {
       const sourcesText = referencesText.substring(8).trim();
       // Split by comma and clean up
-      const sources = sourcesText.split(',').map(source => source.trim().replace(/^\[|\]$/g, ''));
+      const sources = sourcesText
+        .split(',')
+        .map(source => source.trim().replace(/^\[|\]$/g, ''))
+        .filter(source => source && source.toLowerCase() !== 'none');
       references.push(...sources);
     }
 
-    return { answer, references };
+    return { answer, references: references.length > 0 ? references : null };
   };
 
   // Add a message to the chat (legacy method)

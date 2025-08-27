@@ -1,4 +1,5 @@
 from typing import List, Optional
+from collections.abc import AsyncGenerator
 from langchain_core.documents import Document as LangchainDocument
 from services.embedding import EmbeddingService
 from services.store import StoreService
@@ -10,7 +11,7 @@ class ChatbotService:
     def __init__(self):
         pass
 
-    async def get_response(self, chat:ChatRequest) -> str:
+    async def get_response(self, chat: ChatRequest) -> AsyncGenerator[str, None]:
         """
         Generate a response based on the input query.
         
@@ -18,7 +19,7 @@ class ChatbotService:
             chat: The chat request containing question and other parameters
         
         Returns:
-            str: The generated response
+            AsyncGenerator[str, None]: The streaming response generator
         """
         context = ""
         
@@ -110,7 +111,7 @@ Answer:"""
         try:
             # Always use streaming for better UX
             if stream:
-                # Await the coroutine to get the async generator
+                # Return async generator directly
                 return await generate_response(prompt, provider, stream=True)
             else:
                 # For non-streaming, accumulate the response

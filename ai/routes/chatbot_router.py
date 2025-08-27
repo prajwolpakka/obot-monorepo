@@ -1,19 +1,17 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from models.chat_model import ChatRequest
-from utils.response_formatter import format_success_response, format_error_response
-from services.store import StoreService
+from utils.response_formatter import format_error_response
 from services.chatbot_service import ChatbotService
 from utils.logger import logger
-import asyncio
 
 router = APIRouter()
-store = StoreService()
 
 @router.post('/chat')
 async def chatbot(chat: ChatRequest):
     """
     Endpoint to handle chat requests and return streaming responses.
+
     Args:
         chat (ChatRequest): The chat request containing question and documents.
     Returns:
@@ -22,9 +20,9 @@ async def chatbot(chat: ChatRequest):
     try:
         chatbot_service = ChatbotService()
 
-        # Always use streaming for better user experience
         async def stream_gen():
-            async for chunk in await chatbot_service.get_response(chat):
+            response_gen = await chatbot_service.get_response(chat)
+            async for chunk in response_gen:
                 logger.debug(f"Streaming chunk: {chunk[:50]}...")
                 yield chunk
 
