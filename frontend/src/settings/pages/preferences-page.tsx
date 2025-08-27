@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/common/components/ui/card";
 import { Label } from "@/common/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
 import { Switch } from "@/common/components/ui/switch";
 import { Bell } from "lucide-react";
 import { usePreferences, useUpdatePreferences } from "../services/hooks";
@@ -10,7 +9,6 @@ import { z } from "zod";
 import { useEffect } from "react";
 
 const preferencesSchema = z.object({
-  theme: z.enum(['light', 'dark', 'system']).optional(),
   emailNotifications: z.boolean().optional(),
   pushNotifications: z.boolean().optional(),
 });
@@ -24,7 +22,6 @@ const PreferencesPage = () => {
   const form = useForm<PreferencesFormData>({
     resolver: zodResolver(preferencesSchema),
     defaultValues: {
-      theme: 'light',
       emailNotifications: true,
       pushNotifications: false,
     },
@@ -34,7 +31,6 @@ const PreferencesPage = () => {
   useEffect(() => {
     if (preferences) {
       form.reset({
-        theme: preferences.theme || 'light',
         emailNotifications: preferences.emailNotifications ?? true,
         pushNotifications: preferences.pushNotifications ?? false,
       });
@@ -81,30 +77,6 @@ const PreferencesPage = () => {
           <CardDescription>Customize your experience and notifications.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Theme */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Theme</Label>
-            <Controller
-              name="theme"
-              control={form.control}
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => handleUpdate('theme', value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-
           {/* Email Notifications */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-1">

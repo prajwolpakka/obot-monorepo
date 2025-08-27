@@ -5,7 +5,6 @@ export const updateProfileSchema = z.object({
 });
 
 export const updatePreferencesSchema = z.object({
-  theme: z.enum(["light", "dark", "system"]).optional(),
   emailNotifications: z.boolean().optional(),
   pushNotifications: z.boolean().optional(),
 });
