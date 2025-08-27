@@ -5,6 +5,7 @@ import { ScrollArea } from "@/common/components/ui/scroll-area";
 import { Separator } from "@/common/components/ui/separator";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { isToday } from "date-fns";
 import { useNotifications } from "./notification-context";
 import { NotificationItem } from "./notification-item";
 
@@ -14,6 +15,12 @@ export const NotificationBell = () => {
 
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const recentNotifications = notifications.slice(0, 10);
+  const todayNotifications = recentNotifications.filter((n) =>
+    isToday(new Date(n.createdAt))
+  );
+  const earlierNotifications = recentNotifications.filter(
+    (n) => !isToday(new Date(n.createdAt))
+  );
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -55,12 +62,38 @@ export const NotificationBell = () => {
             </div>
           ) : (
             <div className="p-2">
-              {recentNotifications.map((notification, index) => (
-                <div key={notification.id}>
-                  <NotificationItem notification={notification} onClose={() => setIsOpen(false)} />
-                  {index < recentNotifications.length - 1 && <Separator className="my-1" />}
+              {todayNotifications.length > 0 && (
+                <div className="mb-4">
+                  <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">Today</p>
+                  {todayNotifications.map((notification, index) => (
+                    <div key={notification.id}>
+                      <NotificationItem
+                        notification={notification}
+                        onClose={() => setIsOpen(false)}
+                      />
+                      {index < todayNotifications.length - 1 && (
+                        <Separator className="my-1" />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {earlierNotifications.length > 0 && (
+                <div>
+                  <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">Earlier</p>
+                  {earlierNotifications.map((notification, index) => (
+                    <div key={notification.id}>
+                      <NotificationItem
+                        notification={notification}
+                        onClose={() => setIsOpen(false)}
+                      />
+                      {index < earlierNotifications.length - 1 && (
+                        <Separator className="my-1" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </ScrollArea>
