@@ -17,12 +17,13 @@ def get_llm(provider: Literal["ollama", "gemini", "openrouter"], **kwargs):
 async def generate_response(prompt: str, provider="openrouter", stream=False, **kwargs):
     try:
         llm = get_llm(provider, **kwargs)
-        
+
         if stream:
+            # For streaming, return the async generator directly
             return llm.generate_response_stream(prompt)
-        
+
         response = await llm.generate_response(prompt, stream=stream)
         return response
-        
+
     except Exception as e:
         raise

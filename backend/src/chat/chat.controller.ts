@@ -51,33 +51,28 @@ export class ChatController {
   }
 
   @Post('ask')
-  @ApiOperation({ summary: 'Ask a question to AI with document context' })
-  @ApiResponse({ status: 200, description: 'AI response retrieved successfully' })
+  @ApiOperation({ summary: 'Ask a question to AI with document context (always streaming)' })
+  @ApiResponse({ status: 200, description: 'AI streaming response started' })
   async askQuestion(@Body() chatRequest: ChatRequestDto, @Request() req, @Response() res) {
     this.logger.log(`💬 Chat request from user ${req.user.id} - Question: "${chatRequest.question.substring(0, 50)}..."`);
-    this.logger.debug(`📊 Request details: ${chatRequest.documents.length} documents, stream: ${chatRequest.stream}`);
-    
+    this.logger.debug(`📊 Request details: ${chatRequest.documents.length} documents, streaming: always enabled`);
+
     try {
-      if (chatRequest.stream) {
-        // Handle streaming response
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        });
-        
-        await this.chatService.chatWithBrainStream(chatRequest, (chunk: string) => {
-          res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-        });
-        
-        res.write('data: [DONE]\n\n');
-        res.end();
-      } else {
-        // Handle non-streaming response
-        const answer = await this.chatService.chatWithBrain(chatRequest);
-        this.logger.log(`✅ Chat response generated successfully for user ${req.user.id}`);
-        return { message: 'Response generated successfully', data: { answer } };
-      }
+      // Always use streaming for better user experience
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      await this.chatService.chatWithBrainStream(chatRequest, (chunk: string) => {
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      });
+
+      res.write('data: [DONE]\n\n');
+      res.end();
+
+      this.logger.log(`✅ Streaming chat response completed for user ${req.user.id}`);
     } catch (error) {
       this.logger.error(`❌ Chat request failed for user ${req.user.id}: ${error.message}`, error.stack);
       throw error;

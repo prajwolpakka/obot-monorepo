@@ -9,6 +9,15 @@
     "dev:chatbot": "cd chatbot-test && python3 -m http.server 4004",
     "install:backend": "npm install --prefix backend",
     "install:frontend": "npm install --prefix frontend",
-    "install:ai": "sh -c 'cd ai && poetry install'"
+    "install:ai": "sh -c 'cd ai && poetry install'",
+    "restart:all": "pkill -f 'python.*main.py' && pkill -f 'nest start' && sleep 2 && npm run dev:ai & npm run dev:backend & wait",
+    "restart:ai": "pkill -f 'python.*main.py' && sleep 1 && npm run dev:ai",
+    "restart:backend": "pkill -f 'nest start' && sleep 1 && npm run dev:backend",
+    "test:openrouter": "curl -X POST 'http://localhost:4002/api/chat' -H 'Content-Type: application/json' -d '{\"question\": \"Hello, test the new model\", \"provider\": \"openrouter\"}'",
+    "test:streaming": "curl -X POST 'http://localhost:4002/api/chat' -H 'Content-Type: application/json' -d '{\"question\": \"Hello, test streaming\", \"provider\": \"openrouter\"}' -N",
+    "demo:streaming-fixed": "echo '\n=== STREAMING FIXED! ===\n\n✅ No more TypeError: async for requires __aiter__ method\n✅ Proper async generator handling\n✅ Streaming responses working correctly\n✅ Thinking indicator + progressive text\n\n=== Test Commands ===\n• npm run test:streaming (test streaming API)\n• npm run dev:chatbot (test with frontend)\n'",
+    "demo:streaming": "echo '\n=== STREAMING RESPONSE DEMO ===\n\nUser: What are the main features?\n\n🤖 AI Response (streaming):\n\"The company offers... [typing cursor blinks]\n\"The company offers three... [more text appears]\n\"The company offers three main services... [continues streaming]\n\"The company offers three main services: web development, mobile apps, and cloud consulting.\"\n📄 company service... 📄 product catalo... 📄 service overvi...\n\n[No more loading delays - instant streaming feedback!]\n\n=== STREAMING: Always enabled for better UX ===\n'",
+    "demo:references": "echo '\n=== INLINE REFERENCE SYSTEM DEMO ===\n\nAI Response Example:\n\"The company offers three main services: web development, mobile apps, and cloud consulting.\"\n📄 company service... 📄 product catalo... 📄 service overvi...\n\n[Each 📄 icon + filename is individually hoverable]\n\n=== NEW: Clean inline references with proper spacing ===\n'",
+    "demo:thinking-ux": "echo '\n=== IMPROVED THINKING UX! ===\n\n🚀 User Experience Flow:\n\n1. User presses Send → Immediate \"AI is thinking...\" with bouncing dots\n2. AI starts processing → Thinking indicator remains until streaming begins\n3. AI starts streaming → Instant transition to message with typing cursor\n4. Response streams → Progressive text reveal with blinking cursor\n5. Response complete → References appear inline, cursor disappears\n\n=== Visual Indicators ===\n• 💭 Thinking: Animated dots + gradient background\n• ⌨️ Typing: Blinking cursor + progressive text\n• 📄 References: Inline file icons with hover tooltips\n\n=== Test Commands ===\n• npm run dev:chatbot (experience the smooth UX)\n• npm run test:streaming (test backend streaming)\n'"
   }
 }

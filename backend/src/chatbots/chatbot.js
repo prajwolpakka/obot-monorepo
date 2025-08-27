@@ -51,6 +51,11 @@
     this.messages = [];
     this.sessionId = this.generateSessionId();
     this.configLoaded = false;
+  
+    // Rate limiting
+    this.lastRequestTime = 0;
+    this.minRequestInterval = 10000; // 10 seconds between requests (Gemini has better limits)
+    this.isRateLimited = false;
 
     // DOM references
     this.container = null;
@@ -214,9 +219,27 @@
       this.updateUIWithConfig();
     });
 
+    // Handle streaming response start
+    this.socket.on("message-start", (data) => {
+      // Remove thinking indicator and immediately show message container
+      this.removeThinkingIndicator();
+      this.startStreamingMessage(data.messageId, data.timestamp);
+    });
+
+    // Handle streaming chunks
+    this.socket.on("message-chunk", (data) => {
+      this.updateStreamingMessage(data.messageId, data.chunk, data.fullResponse);
+    });
+
+    // Handle streaming completion
+    this.socket.on("message-complete", (data) => {
+      this.completeStreamingMessage(data.messageId, data.finalContent);
+    });
+
+    // Fallback for non-streaming responses (backward compatibility)
     this.socket.on("message-response", (data) => {
-      this.removeLoadingIndicator();
-      this.addMessageWithTyping("Bot", data.message);
+      this.removeThinkingIndicator();
+      this.addMessageWithReferences("Bot", data.message);
     });
 
     this.socket.on("chat-history", (data) => {
@@ -229,8 +252,17 @@
     });
 
     this.socket.on("message-error", (data) => {
-      this.removeLoadingIndicator();
-      this.addMessage("Bot", "Sorry, something went wrong!");
+      this.removeThinkingIndicator();
+
+      // Check if it's a rate limit error
+      if (data.error && data.error.includes("429")) {
+        this.addMessageWithReferences("Bot", "🚦 Rate limit reached! Please wait a moment before sending another message.");
+        // Temporarily increase rate limit interval
+        this.minRequestInterval = Math.min(this.minRequestInterval * 2, 120000); // Max 2 minutes
+      } else {
+        this.addMessageWithReferences("Bot", "Sorry, something went wrong! Please try again.");
+      }
+
       console.error("Chat error:", data.error);
     });
 
@@ -672,6 +704,27 @@
     const userMessage = this.input.value.trim();
     if (!userMessage) return;
 
+    // Check rate limiting
+    const now = Date.now();
+    if (now - this.lastRequestTime < this.minRequestInterval) {
+      const waitTime = this.minRequestInterval - (now - this.lastRequestTime);
+      const waitSeconds = Math.ceil(waitTime / 1000);
+
+      if (!this.isRateLimited) {
+        this.isRateLimited = true;
+        this.addMessage("Bot", `⏱️ Please wait ${waitSeconds} seconds before sending another message to avoid rate limits.`);
+        this.input.value = "";
+
+        // Re-enable input after wait time
+        setTimeout(() => {
+          this.isRateLimited = false;
+          this.addMessage("Bot", "You can now send another message! 💬");
+        }, waitTime);
+      }
+      return;
+    }
+
+    this.lastRequestTime = now;
     this.addMessage("You", userMessage);
     this.hideTriggerArea();
 
@@ -685,8 +738,8 @@
         this.addMessageWithTyping("Bot", "🚀 This is preview mode. After integration, you'll get AI responses!");
       }, 500);
     } else {
-      // Production mode - send via socket
-      this.showLoadingIndicator();
+      // Production mode - show thinking indicator immediately
+      this.showThinkingIndicator();
 
       if (this.socket && this.socket.connected) {
         this.socket.emit("send-message", {
@@ -698,7 +751,7 @@
         // Fallback if socket not connected
         console.warn("Socket not connected, using fallback");
         setTimeout(() => {
-          this.removeLoadingIndicator();
+          this.removeThinkingIndicator();
           this.addMessageWithTyping(
             "Bot",
             `Thanks for your message! You said: "${userMessage}". I'm currently in offline mode, but I'd love to help you when I'm back online. Please try again in a moment or check your internet connection.`
@@ -710,6 +763,193 @@
     this.input.value = "";
   };
 
+  // Show thinking indicator immediately when user sends message
+  Chatbot.prototype.showThinkingIndicator = function () {
+    // Remove any existing thinking indicator
+    this.removeThinkingIndicator();
+
+    // Create a thinking indicator
+    const thinkingIndicator = document.createElement("div");
+    thinkingIndicator.classList.add("message-container", "bot-message");
+    thinkingIndicator.id = "thinking-indicator";
+    thinkingIndicator.innerHTML = `
+      <div class="message-content" style="
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        opacity: 0.8;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: thinking-pulse 2s ease-in-out infinite;
+      ">
+        <div style="display: flex; gap: 3px;">
+          <div class="thinking-dot" style="
+            width: 6px;
+            height: 6px;
+            background-color: #4A2C7E;
+            border-radius: 50%;
+            animation: thinking-bounce 1.4s infinite ease-in-out;
+          "></div>
+          <div class="thinking-dot" style="
+            width: 6px;
+            height: 6px;
+            background-color: #4A2C7E;
+            border-radius: 50%;
+            animation: thinking-bounce 1.4s infinite ease-in-out 0.2s;
+          "></div>
+          <div class="thinking-dot" style="
+            width: 6px;
+            height: 6px;
+            background-color: #4A2C7E;
+            border-radius: 50%;
+            animation: thinking-bounce 1.4s infinite ease-in-out 0.4s;
+          "></div>
+        </div>
+        <span style="
+          font-size: 13px;
+          color: #4A2C7E;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+        ">AI is thinking...</span>
+      </div>
+      <style>
+        @keyframes thinking-bounce {
+          0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.6;
+          }
+          40% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        @keyframes thinking-pulse {
+          0%, 100% { background-position: 200% 0; }
+          50% { background-position: -200% 0; }
+        }
+      </style>
+    `;
+
+    this.messagesDiv.appendChild(thinkingIndicator);
+    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+  };
+
+  // Remove thinking indicator
+  Chatbot.prototype.removeThinkingIndicator = function () {
+    const thinkingIndicator = this.messagesDiv.querySelector("#thinking-indicator");
+    if (thinkingIndicator) {
+      thinkingIndicator.remove();
+    }
+  };
+
+  // Start streaming message
+  Chatbot.prototype.startStreamingMessage = function (messageId, timestamp) {
+    // Remove typing indicator
+    const typingIndicator = this.messagesDiv.querySelector("#typing-indicator");
+    if (typingIndicator) {
+      typingIndicator.remove();
+    }
+
+    // Create streaming message container
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message-container", "bot-message");
+    messageElement.id = `streaming-${messageId}`;
+
+    // Get the appropriate color
+    let color;
+    if (this.config && this.config.color) {
+      color = this.config.color;
+    } else {
+      color = "#4A2C7E";
+    }
+
+    messageElement.innerHTML = `
+      <div class="message-content" style="background-color: ${color}; color: white;">
+        <span id="content-${messageId}"></span>
+        <span id="cursor-${messageId}" class="typing-cursor">|</span>
+      </div>
+    `;
+
+    this.messagesDiv.appendChild(messageElement);
+    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+
+    // Add cursor blinking animation
+    if (!document.getElementById("streaming-cursor-style")) {
+      const style = document.createElement("style");
+      style.id = "streaming-cursor-style";
+      style.textContent = `
+        @keyframes streaming-blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+        .typing-cursor {
+          animation: streaming-blink 1s infinite;
+          font-weight: normal;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  };
+
+  // Update streaming message with new chunk
+  Chatbot.prototype.updateStreamingMessage = function (messageId, chunk, fullResponse) {
+    const contentElement = document.getElementById(`content-${messageId}`);
+    if (contentElement) {
+      contentElement.textContent = fullResponse;
+      // Scroll to bottom
+      this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+    }
+  };
+
+  // Complete streaming message and add references
+  Chatbot.prototype.completeStreamingMessage = function (messageId, finalContent) {
+    // Remove cursor
+    const cursorElement = document.getElementById(`cursor-${messageId}`);
+    if (cursorElement) {
+      cursorElement.remove();
+    }
+
+    // Update final content
+    const contentElement = document.getElementById(`content-${messageId}`);
+    if (contentElement) {
+      // Parse and display with references
+      const { answer, references } = this.parseResponseWithReferences(finalContent);
+
+      // Update the content
+      contentElement.textContent = answer;
+
+      // Add references if they exist
+      if (references && references.length > 0) {
+        const messageElement = document.getElementById(`streaming-${messageId}`);
+        const isUserMessage = false; // Bot message
+        const shortRefs = references.map(ref => this.createShortReference(ref, isUserMessage)).join(' ');
+
+        const referenceDiv = document.createElement("div");
+        referenceDiv.classList.add("inline-references");
+        referenceDiv.style.cssText = `
+          margin-top: 8px;
+          padding-top: 6px;
+          border-top: 1px solid rgba(255,255,255,0.3);
+          font-size: 11px;
+          opacity: 0.85;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+        `;
+        referenceDiv.innerHTML = shortRefs;
+
+        messageElement.appendChild(referenceDiv);
+      }
+
+      // Scroll to bottom
+      this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+    }
+
+    // Update triggers
+    this.updateTriggerButtons();
+  };
+
   // Toggle the chat window in floating mode
   Chatbot.prototype.toggleChat = function () {
     const isVisible = this.chatWindow.classList.contains("visible");
@@ -717,7 +957,123 @@
     this.toggleButton.style.transform = isVisible ? "scale(1)" : "scale(1.1)";
   };
 
-  // Add a message to the chat
+  // Add a message with references support
+  Chatbot.prototype.addMessageWithReferences = function (sender, text) {
+    // Parse the response to separate answer from references
+    const { answer, references } = this.parseResponseWithReferences(text);
+
+    this.messages.push({ sender, text: answer, references });
+
+    const messageClass = sender === "You" ? "user-message" : "bot-message";
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message-container", messageClass);
+
+    // Get the appropriate color based on mode and config state
+    let color;
+    if (this.mode === "demo") {
+      color = this.demoProps.color;
+    } else if (this.config && this.config.color) {
+      // Use config color if it exists, regardless of configLoaded state
+      color = this.config.color;
+    } else {
+      color = "#4A2C7E"; // fallback
+    }
+
+    const backgroundStyle = sender === "You" ? `style="background-color: ${color}; color: white;"` : "";
+
+    // Create the message content with inline references
+    let messageContent = answer;
+
+    // Add references inline if they exist
+    if (references && references.length > 0) {
+      const isUserMessage = sender === "You";
+      const shortRefs = references.map(ref => this.createShortReference(ref, isUserMessage)).join(' ');
+
+      // Different styling for bot vs user messages
+      const referenceStyle = sender === "You"
+        ? `border-top: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.8);`
+        : `border-top: 1px solid rgba(74,44,126,0.3); color: rgba(74,44,126,0.8);`;
+
+      messageContent += `<div class="inline-references" style="
+        margin-top: 8px;
+        padding-top: 6px;
+        ${referenceStyle}
+        font-size: 11px;
+        opacity: 0.85;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      ">${shortRefs}</div>`;
+    }
+
+    const messageHTML = `<div class="message-content" ${backgroundStyle}>${messageContent}</div>`;
+
+    messageElement.innerHTML = messageHTML;
+
+    this.messagesDiv.appendChild(messageElement);
+    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+
+    // Update triggers after adding message
+    this.updateTriggerButtons();
+  };
+
+  // Create shortened reference with hover tooltip
+  Chatbot.prototype.createShortReference = function (fullRef, isUserMessage = false) {
+    // Extract filename from reference (assuming format like "Document Name (Page X)")
+    const fileMatch = fullRef.match(/^([^(\n]+)/);
+    const filename = fileMatch ? fileMatch[1].trim() : fullRef;
+
+    // Create shortened version (lowercase, first 15 chars + extension if available)
+    let shortName = filename.toLowerCase();
+
+    // If it's longer than 15 chars, truncate and add extension if present
+    if (shortName.length > 15) {
+      const extMatch = filename.match(/\.([a-zA-Z0-9]+)$/);
+      const extension = extMatch ? extMatch[1] : '';
+      shortName = shortName.substring(0, 12) + '...' + (extension ? '.' + extension : '');
+    }
+
+    // Return as individual item with icon and proper spacing
+    return `<span class="reference-item" title="${fullRef}" style="
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: help;
+      border-bottom: 1px dotted rgba(255,255,255,0.5);
+      padding: 2px 6px;
+      border-radius: 3px;
+      transition: opacity 0.2s ease;
+      font-size: 10px;
+    ">📄 ${shortName}</span>`;
+  };
+
+  // Parse response to separate answer from references
+  Chatbot.prototype.parseResponseWithReferences = function (text) {
+    // Look for the reference separator (---)
+    const separatorIndex = text.indexOf('\n---\n');
+
+    if (separatorIndex === -1) {
+      // No references found, return the whole text as answer
+      return { answer: text, references: null };
+    }
+
+    const answer = text.substring(0, separatorIndex).trim();
+    const referencesText = text.substring(separatorIndex + 5).trim();
+
+    // Parse references (assuming format: "Sources: [file1, file2, ...]")
+    const references = [];
+    if (referencesText.toLowerCase().startsWith('sources:')) {
+      const sourcesText = referencesText.substring(8).trim();
+      // Split by comma and clean up
+      const sources = sourcesText.split(',').map(source => source.trim().replace(/^\[|\]$/g, ''));
+      references.push(...sources);
+    }
+
+    return { answer, references };
+  };
+
+  // Add a message to the chat (legacy method)
   Chatbot.prototype.addMessage = function (sender, text) {
     this.messages.push({ sender, text });
 

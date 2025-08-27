@@ -9,9 +9,12 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ChatService } from './chat.service';
 import { ChatbotsService } from '../chatbots/chatbots.service';
 import { WebSocketAuthService } from '../auth/websocket-auth.service';
+import { ChatMessage } from './entities/chat-message.entity';
 
 @Injectable()
 @WebSocketGateway({
@@ -29,6 +32,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private chatService: ChatService,
     private chatbotsService: ChatbotsService,
     private webSocketAuthService: WebSocketAuthService,
+    @InjectRepository(ChatMessage)
+    private chatMessageRepository: Repository<ChatMessage>,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -108,29 +113,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Get documents associated with this chatbot
       const documents = await this.chatService.getChatbotDocuments(data.chatbotId);
       
-      // Call brain API to get AI response
+      // Call brain API to get AI response with streaming
       const chatRequest = {
         question: data.message,
         chatbotId: data.chatbotId,
-        stream: false,
+        stream: true,
         documents: documents // Include chatbot's documents for context
       };
 
-      const botResponse = await this.chatService.chatWithBrain(chatRequest);
+      // Start streaming response
+      let fullResponse = '';
+      let messageId: string;
 
-      // Save bot response
+      // Create bot message placeholder first
       const botMessage = await this.chatService.saveMessage({
-        content: botResponse,
+        content: '', // Will be updated as streaming progresses
         sender: 'bot',
         chatbotId: data.chatbotId,
         sessionId: data.sessionId || client.id,
       });
+      messageId = botMessage.id;
 
-      // Send response back to client
-      client.emit('message-response', {
-        message: botResponse,
-        messageId: botMessage.id,
+      // Send initial response to show streaming has started
+      client.emit('message-start', {
+        messageId: messageId,
         timestamp: botMessage.createdAt,
+      });
+
+      // Stream the response
+      await this.chatService.chatWithBrainStream(chatRequest, (chunk) => {
+        fullResponse += chunk;
+        client.emit('message-chunk', {
+          messageId: messageId,
+          chunk: chunk,
+          fullResponse: fullResponse
+        });
+      });
+
+      // Update the message with final content
+      botMessage.content = fullResponse;
+      await this.chatMessageRepository.save(botMessage);
+
+      // Send completion signal
+      client.emit('message-complete', {
+        messageId: messageId,
+        finalContent: fullResponse
       });
 
     } catch (error) {

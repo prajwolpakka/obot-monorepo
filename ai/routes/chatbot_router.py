@@ -13,27 +13,23 @@ store = StoreService()
 @router.post('/chat')
 async def chatbot(chat: ChatRequest):
     """
-    Endpoint to handle chat requests and return responses.
+    Endpoint to handle chat requests and return streaming responses.
     Args:
         chat (ChatRequest): The chat request containing question and documents.
     Returns:
-        StreamingResponse: A streaming response if chat.stream is True, else a success response.    
+        StreamingResponse: Always returns a streaming response for better UX.
     """
     try:
         chatbot_service = ChatbotService()
-        print(f"streaming: {chat.stream}")
-        if chat.stream:
-            async def stream_gen():
-                async for chunk in await chatbot_service.get_response(chat):
-                    print(f"Yielding chunk on chatbot route: {chunk}")
-                    yield chunk
-                    await asyncio.sleep(0.02)
 
-            return StreamingResponse(stream_gen(), media_type="text/plain")
-        
-        answer = await chatbot_service.get_response(chat)
-        
-        response_data = {"answer": answer}
-        return format_success_response(data=response_data)
+        # Always use streaming for better user experience
+        async def stream_gen():
+            async for chunk in await chatbot_service.get_response(chat):
+                logger.debug(f"Streaming chunk: {chunk[:50]}...")
+                yield chunk
+
+        return StreamingResponse(stream_gen(), media_type="text/plain")
+
     except Exception as e:
+        logger.error(f"Chatbot error: {str(e)}")
         return format_error_response(str(e), status_code=500)

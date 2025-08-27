@@ -34,27 +34,37 @@ class ChatbotService:
             results = store_service.search_chunks_by_ids(query_vector, chat.documents)
             
             if results:
-                for i, result in enumerate(results):
-                    print(f"  - Chunk {i+1}: score={result.score:.4f}, doc_id={result.payload.get('id', 'unknown')}")
+                logger.info(f"📄 Found {len(results)} relevant chunks:")
+                for i, result in enumerate(results[:3]):  # Show top 3 chunks
+                    chunk_id = result.payload.get('id', 'unknown')[:8]
+                    score = result.score
+                    content_preview = result.payload.get("page_content", "")[:100].replace('\n', ' ')
+                    logger.info(f"   • Chunk {i+1}: {chunk_id}... (score: {score:.3f}) - '{content_preview}...'")
+                if len(results) > 3:
+                    logger.info(f"   • ... and {len(results) - 3} more chunks")
             else:
-                print(f"  - ❌ No chunks found for any of the document IDs")
+                logger.warning(f"❌ No chunks found for document IDs: {chat.documents}")
 
             # Step 3: Collect context
-            context = "\n\n".join([r.payload.get("page_content", "") for r in results if "page_content" in r.payload])
-            
-            if not context:
-                logger.warning(f"⚠️ [CHATBOT_SERVICE] No usable context found from {len(results)} results")
-                print(f"  - ❌ No usable context extracted from results")
+            context_chunks = [r.payload.get("page_content", "") for r in results if "page_content" in r.payload]
+            context = "\n\n".join(context_chunks)
+
+            if context:
+                logger.info(f"📝 Context compiled from {len(context_chunks)} chunks ({len(context)} chars)")
+            else:
+                logger.warning(f"⚠️ No usable context extracted from {len(results)} results")
         else:
             logger.info(f"🔄 [CHATBOT_SERVICE] No documents provided, proceeding with direct LLM call")
 
-        # Step 4: Call LLM with or without context
-        logger.info(f"🚀 [CHATBOT_SERVICE] Calling LLM with provider: {chat.provider}, stream: {chat.stream}")
-        
-        if chat.stream:
-            return await self.call_llm(chat.question, context, provider=chat.provider, stream=True)
+        # Step 4: Call LLM with streaming (always enabled for better UX)
+        logger.info(f"🚀 Calling {chat.provider} LLM (stream: always enabled)")
+        if context:
+            logger.info(f"📋 Using context from {len(chat.documents)} documents ({len(context)} chars)")
+        else:
+            logger.info(f"🔄 No documents provided - direct LLM call")
 
-        return await self.call_llm(chat.question, context, provider=chat.provider, stream=False)
+        # Always use streaming for better user experience
+        return await self.call_llm(chat.question, context, provider=chat.provider, stream=True)
     
     def generate_prompt(self, question, context):
         """
@@ -75,9 +85,14 @@ Answer:"""
         prompt = f"""You are a helpful AI assistant. You must ONLY answer questions based on the provided context from documents. Do not use any knowledge outside of the provided context.
 
 IMPORTANT RULES:
-1. If the question can be answered using the provided context, answer it accurately and completely.
-2. If the question cannot be answered from the provided context, respond EXACTLY with: "I looked far and deep but couldn't get what you are looking for."
-3. Do not make up information or use general knowledge not present in the context.
+1. Provide SHORT, CONCISE answers (maximum 2-3 sentences)
+2. Be direct and to the point
+3. If the question can be answered using the provided context, answer it accurately.
+4. If the question cannot be answered from the provided context, respond EXACTLY with: "I looked far and deep but couldn't get what you are looking for."
+5. Do not make up information or use general knowledge not present in the context.
+6. ALWAYS include source references at the end in this exact format:
+   ---
+   Sources: [List the specific files/pages/chapters where this information comes from]
 
 Context from documents:
 {context}
@@ -87,15 +102,24 @@ Question: {question}
 Answer:"""
         return prompt
 
-    async def call_llm(self, question: str, context: str, provider: str = "gemini", stream: bool = False) -> str:
+    async def call_llm(self, question: str, context: str, provider: str = "gemini", stream: bool = False):
         prompt = self.generate_prompt(question, context)
-        
+
+        logger.info(f"🤖 Sending to {provider}: '{question[:50]}{'...' if len(question) > 50 else ''}'")
+
         try:
+            # Always use streaming for better UX
             if stream:
+                # Await the coroutine to get the async generator
                 return await generate_response(prompt, provider, stream=True)
-            
-            response = await generate_response(prompt, provider, stream=False)
-            return response
-            
+            else:
+                # For non-streaming, accumulate the response
+                full_response = ""
+                async for chunk in await generate_response(prompt, provider, stream=True):
+                    full_response += chunk
+                logger.info(f"✅ {provider} responded ({len(full_response)} chars)")
+                return full_response
+
         except Exception as e:
+            logger.error(f"❌ {provider} failed: {str(e)}")
             raise
