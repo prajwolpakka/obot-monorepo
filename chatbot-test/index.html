@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Test</title>
+</head>
+<body>
+    <h1>Chatbot Integration Test</h1>
+    <!-- Add this script tag to your website -->
+    <script src="http://localhost:4001/api/chatbot/integrate"></script>
+    <div id="chat-interface"></div>
+    <script>
+    // Initialize chatbot once script loads
+    if (typeof Chatbot !== 'undefined') {
+    Chatbot.init({
+    chatbotId: "5097a91c-02c1-4a8d-b434-e3ddad8e142d"
+    });
+    } else {
+    console.error('Chatbot script failed to load. Check if your domain is in the allowed domains list.');
+    }
+    </script>
+</body>
+</html>
