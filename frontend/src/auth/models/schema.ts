@@ -9,7 +9,9 @@ export const signupSchema = z
   .object({
     fullName: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, "Password is too weak. It should contain at least 1 uppercase letter, 1 lowercase letter, and 1 number or special character."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -23,7 +25,9 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z
   .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, "Password is too weak. It should contain at least 1 uppercase letter, 1 lowercase letter, and 1 number or special character."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -34,7 +38,9 @@ export const resetPasswordSchema = z
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string(),
-    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    newPassword: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, "Password is too weak. It should contain at least 1 uppercase letter, 1 lowercase letter, and 1 number or special character."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
