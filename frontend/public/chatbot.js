@@ -216,7 +216,7 @@
 
     this.socket.on("message-response", (data) => {
       this.removeLoadingIndicator();
-      this.addMessageWithTyping("Bot", data.message);
+      this.addMessageWithTyping("Bot", data.message, data.references);
     });
 
     this.socket.on("chat-history", (data) => {
@@ -346,7 +346,7 @@
     // Load historical messages
     messages.forEach((msg) => {
       const sender = msg.sender === "user" ? "You" : "Bot";
-      this.addMessage(sender, msg.content);
+      this.addMessage(sender, msg.content, msg.references);
     });
 
     // Update user message colors after loading history
@@ -650,6 +650,9 @@
       ? this.demoProps.color
       : "#4A2C7E";
     this.updateTriggerHoverColor(initialColor);
+
+    // Add custom styles for thinking message and references
+    this.addCustomStyles();
   };
 
   // Hide the trigger area
@@ -718,8 +721,8 @@
   };
 
   // Add a message to the chat
-  Chatbot.prototype.addMessage = function (sender, text) {
-    this.messages.push({ sender, text });
+  Chatbot.prototype.addMessage = function (sender, text, references = null) {
+    this.messages.push({ sender, text, references });
 
     const messageClass = sender === "You" ? "user-message" : "bot-message";
     const messageElement = document.createElement("div");
@@ -745,9 +748,25 @@
     });
 
     const backgroundStyle = sender === "You" ? `style="background-color: ${color}; color: white;"` : "";
-    messageElement.innerHTML = `
-      <div class="message-content" ${backgroundStyle}>${text}</div>
-    `;
+    let messageHTML = `<div class="message-content" ${backgroundStyle}>${text}</div>`;
+
+    // Add references if provided and sender is Bot
+    if (sender === "Bot" && references && references.length > 0) {
+      messageHTML += `
+        <div class="message-references" style="margin-top: 12px; font-size: 12px; color: #666;">
+          <div style="font-weight: 500; margin-bottom: 6px;">References:</div>
+          ${references.map((ref, index) => `
+            <div class="reference-item" style="margin-bottom: 4px;">
+              <a href="${ref.url || '#'}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: none;">
+                ${index + 1}. ${ref.title || ref.url || 'Reference'}
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    messageElement.innerHTML = messageHTML;
 
     this.messagesDiv.appendChild(messageElement);
     this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
@@ -757,8 +776,8 @@
   };
 
   // Add a message with typing animation (like Gemini)
-  Chatbot.prototype.addMessageWithTyping = function (sender, text) {
-    this.messages.push({ sender, text });
+  Chatbot.prototype.addMessageWithTyping = function (sender, text, references = null) {
+    this.messages.push({ sender, text, references });
 
     const messageClass = sender === "You" ? "user-message" : "bot-message";
     const messageElement = document.createElement("div");
@@ -813,6 +832,28 @@
       } else {
         // Remove cursor and show final text
         messageContent.innerHTML = text;
+
+        // Add references if provided and sender is Bot
+        if (sender === "Bot" && references && references.length > 0) {
+          const referencesDiv = document.createElement("div");
+          referencesDiv.classList.add("message-references");
+          referencesDiv.style.marginTop = "12px";
+          referencesDiv.style.fontSize = "12px";
+          referencesDiv.style.color = "#666";
+
+          referencesDiv.innerHTML = `
+            <div style="font-weight: 500; margin-bottom: 6px;">References:</div>
+            ${references.map((ref, index) => `
+              <div class="reference-item" style="margin-bottom: 4px;">
+                <a href="${ref.url || '#'}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: none;">
+                  ${index + 1}. ${ref.title || ref.url || 'Reference'}
+                </a>
+              </div>
+            `).join('')}
+          `;
+          messageElement.appendChild(referencesDiv);
+        }
+
         this.updateTriggerButtons();
       }
     };
@@ -837,15 +878,17 @@
     typeWriter();
   };
 
-  // Show loading indicator
+  // Show loading indicator as a message box
   Chatbot.prototype.showLoadingIndicator = function () {
     const loadingElement = document.createElement("div");
     loadingElement.classList.add("message-container", "bot-message", "loading-container");
     loadingElement.id = "chat-loading";
     loadingElement.innerHTML = `
-      <div class="loading-indicator">
-        <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid #666; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
-        <span class="loading-text">Thinking...</span>
+      <div class="message-content thinking-message">
+        <div class="thinking-indicator">
+          <span class="thinking-spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid #666; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+          <span class="thinking-text">Thinking...</span>
+        </div>
       </div>
     `;
     this.messagesDiv.appendChild(loadingElement);
@@ -858,6 +901,51 @@
     if (loadingElement) {
       loadingElement.remove();
     }
+  };
+
+  // Add custom styles for thinking message and references
+  Chatbot.prototype.addCustomStyles = function () {
+    if (document.getElementById("chatbot-custom-styles")) return;
+
+    const style = document.createElement("style");
+    style.id = "chatbot-custom-styles";
+    style.textContent = `
+      .thinking-message {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .thinking-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .thinking-spinner {
+        flex-shrink: 0;
+      }
+
+      .thinking-text {
+        color: #666;
+        font-style: italic;
+      }
+
+      .message-references {
+        border-top: 1px solid #e0e0e0;
+        padding-top: 8px;
+        margin-top: 12px;
+      }
+
+      .reference-item a:hover {
+        text-decoration: underline !important;
+      }
+
+      .reference-item {
+        line-height: 1.4;
+      }
+    `;
+    document.head.appendChild(style);
   };
 
   // Handle input keypress (Enter key)

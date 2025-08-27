@@ -763,71 +763,30 @@
     this.input.value = "";
   };
 
-  // Show thinking indicator immediately when user sends message
+  // Show thinking indicator as a message box
   Chatbot.prototype.showThinkingIndicator = function () {
     // Remove any existing thinking indicator
     this.removeThinkingIndicator();
 
-    // Create a thinking indicator
+    // Create a thinking indicator that looks like a message box
     const thinkingIndicator = document.createElement("div");
-    thinkingIndicator.classList.add("message-container", "bot-message");
+    thinkingIndicator.classList.add("message-container", "bot-message", "thinking-container");
     thinkingIndicator.id = "thinking-indicator";
     thinkingIndicator.innerHTML = `
-      <div class="message-content" style="
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        opacity: 0.8;
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: thinking-pulse 2s ease-in-out infinite;
-      ">
-        <div style="display: flex; gap: 3px;">
-          <div class="thinking-dot" style="
-            width: 6px;
-            height: 6px;
-            background-color: #4A2C7E;
+      <div class="message-content thinking-message">
+        <div class="thinking-indicator">
+          <span class="thinking-spinner" style="
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #666;
+            border-top-color: transparent;
             border-radius: 50%;
-            animation: thinking-bounce 1.4s infinite ease-in-out;
-          "></div>
-          <div class="thinking-dot" style="
-            width: 6px;
-            height: 6px;
-            background-color: #4A2C7E;
-            border-radius: 50%;
-            animation: thinking-bounce 1.4s infinite ease-in-out 0.2s;
-          "></div>
-          <div class="thinking-dot" style="
-            width: 6px;
-            height: 6px;
-            background-color: #4A2C7E;
-            border-radius: 50%;
-            animation: thinking-bounce 1.4s infinite ease-in-out 0.4s;
-          "></div>
+            animation: spin 1s linear infinite;
+          "></span>
+          <span class="thinking-text">Thinking...</span>
         </div>
-        <span style="
-          font-size: 13px;
-          color: #4A2C7E;
-          font-weight: 500;
-          letter-spacing: 0.5px;
-        ">AI is thinking...</span>
       </div>
-      <style>
-        @keyframes thinking-bounce {
-          0%, 80%, 100% {
-            transform: scale(0.8);
-            opacity: 0.6;
-          }
-          40% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        @keyframes thinking-pulse {
-          0%, 100% { background-position: 200% 0; }
-          50% { background-position: -200% 0; }
-        }
-      </style>
     `;
 
     this.messagesDiv.appendChild(thinkingIndicator);

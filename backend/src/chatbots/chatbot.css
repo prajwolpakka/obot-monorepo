@@ -167,6 +167,32 @@
   transition: opacity 0.2s ease-out;
 }
 
+.thinking-container {
+  opacity: 1;
+  transition: opacity 0.2s ease-out;
+}
+
+.thinking-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thinking-spinner {
+  flex-shrink: 0;
+}
+
+.thinking-text {
+  color: #666;
+  font-style: italic;
+}
+
 .loading-indicator {
   display: flex;
   align-items: center;
