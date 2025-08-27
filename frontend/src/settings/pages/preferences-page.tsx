@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/common/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
 import { Switch } from "@/common/components/ui/switch";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import { usePreferences, useUpdatePreferences } from "../services/hooks";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +18,7 @@ const preferencesSchema = z.object({
 type PreferencesFormData = z.infer<typeof preferencesSchema>;
 
 const PreferencesPage = () => {
-  const { data: preferences, isLoading, error } = usePreferences();
+  const { data: preferences, error } = usePreferences();
   const updatePreferencesMutation = useUpdatePreferences();
 
   const form = useForm<PreferencesFormData>({
@@ -58,19 +58,6 @@ const PreferencesPage = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Card className="w-full md:w-1/2">
-          <CardContent className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading preferences...</span>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="space-y-6">
@@ -104,7 +91,6 @@ const PreferencesPage = () => {
                 <Select
                   value={field.value}
                   onValueChange={(value) => handleUpdate('theme', value)}
-                  disabled={updatePreferencesMutation.isPending}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select theme" />
@@ -132,7 +118,6 @@ const PreferencesPage = () => {
                 <Switch
                   checked={field.value}
                   onCheckedChange={(value) => handleUpdate('emailNotifications', value)}
-                  disabled={updatePreferencesMutation.isPending}
                 />
               )}
             />
@@ -151,7 +136,6 @@ const PreferencesPage = () => {
                 <Switch
                   checked={field.value}
                   onCheckedChange={(value) => handleUpdate('pushNotifications', value)}
-                  disabled={updatePreferencesMutation.isPending}
                 />
               )}
             />
@@ -168,13 +152,6 @@ const PreferencesPage = () => {
         </CardContent>
       </Card>
 
-      {/* Loading indicator */}
-      {updatePreferencesMutation.isPending && (
-        <div className="flex items-center justify-center py-2">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          <span className="text-sm text-muted-foreground">Saving changes...</span>
-        </div>
-      )}
     </div>
   );
 };
