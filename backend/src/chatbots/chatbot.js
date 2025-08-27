@@ -281,7 +281,7 @@
     this.socket.on("connect_error", (error) => {
       console.error("Socket connection error:", error);
       this.removeLoadingIndicator();
-      this.addMessage("Bot", "Connection error. Please try again.");
+      this.addMessageWithReferences("Bot", "Connection error. Please try again.");
     });
   };
 
@@ -297,7 +297,7 @@
 
     // Add initial message for demo
     if (this.config.initialMessage) {
-      this.addMessage("Bot", this.config.initialMessage);
+      this.addMessageWithReferences("Bot", this.config.initialMessage);
     }
 
     this.updateTriggerButtons();
@@ -384,13 +384,13 @@
 
     // Add initial message if it exists and no history
     if (this.config.initialMessage && messages.length === 0) {
-      this.addMessage("Bot", this.config.initialMessage);
+      this.addMessageWithReferences("Bot", this.config.initialMessage);
     }
 
     // Load historical messages
     messages.forEach((msg) => {
       const sender = msg.sender === "user" ? "You" : "Bot";
-      this.addMessage(sender, msg.content);
+      this.addMessageWithReferences(sender, msg.content);
     });
 
     // Update user message colors after loading history
@@ -440,7 +440,7 @@
 
     // Add initial message if it exists
     if (this.config.initialMessage) {
-      this.addMessage("Bot", this.config.initialMessage);
+      this.addMessageWithReferences("Bot", this.config.initialMessage);
     }
   };
 
@@ -724,13 +724,13 @@
 
       if (!this.isRateLimited) {
         this.isRateLimited = true;
-        this.addMessage("Bot", `⏱️ Please wait ${waitSeconds} seconds before sending another message to avoid rate limits.`);
+        this.addMessageWithReferences("Bot", `⏱️ Please wait ${waitSeconds} seconds before sending another message to avoid rate limits.`);
         this.input.value = "";
 
         // Re-enable input after wait time
         setTimeout(() => {
           this.isRateLimited = false;
-          this.addMessage("Bot", "You can now send another message! 💬");
+          this.addMessageWithReferences("Bot", "You can now send another message! 💬");
         }, waitTime);
       }
       return;
@@ -876,11 +876,13 @@
 
       // Add references if they exist
       if (references && references.length > 0) {
-        const messageElement = document.getElementById(`streaming-${messageId}`);
+        const contentContainer = contentElement.parentElement;
         const referenceDiv = document.createElement("div");
         referenceDiv.classList.add("message-references");
         references.forEach(ref => referenceDiv.appendChild(this.createReferenceItem(ref)));
-        messageElement.appendChild(referenceDiv);
+        if (contentContainer) {
+          contentContainer.appendChild(referenceDiv);
+        }
       }
 
       // Scroll to bottom
@@ -928,15 +930,16 @@
       contentDiv.style.color = "white";
     }
     contentDiv.innerHTML = answer;
-    messageElement.appendChild(contentDiv);
 
     // Add references below message if they exist
     if (references && references.length > 0) {
       const referenceDiv = document.createElement("div");
       referenceDiv.classList.add("message-references");
       references.forEach(ref => referenceDiv.appendChild(this.createReferenceItem(ref)));
-      messageElement.appendChild(referenceDiv);
+      contentDiv.appendChild(referenceDiv);
     }
+
+    messageElement.appendChild(contentDiv);
 
     this.messagesDiv.appendChild(messageElement);
     this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
@@ -956,8 +959,7 @@
     item.title = fullRef;
     item.innerHTML = `
       <svg class="reference-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
+        <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.19 9.19a2 2 0 0 1-2.83-2.83l8.48-8.48"></path>
       </svg>
       <span class="reference-text">${shortName}</span>
     `;
