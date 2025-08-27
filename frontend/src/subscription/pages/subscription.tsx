@@ -21,62 +21,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/common/components/ui/dialog";
-import { Progress } from "@/common/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
-import { AlertTriangle, BarChart, Check, CreditCard, Crown, MessageSquare, Users, Zap } from "lucide-react";
+import { AlertTriangle, BarChart, Check, CreditCard, Crown, Zap } from "lucide-react";
 import { useState } from "react";
+import { useSubscription, useSubscriptionPlans, useUpdateSubscription } from "../services/hooks";
 
 const SubscriptionPage = () => {
   const [isChangePlanOpen, setIsChangePlanOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
-  const currentPlan = {
-    name: "Pro",
-    price: 29,
-    billing: "monthly",
-    features: ["5 chatbots", "10,000 messages/month", "Priority support", "Advanced analytics", "Custom branding"],
-    usage: {
-      chatbots: { used: 3, limit: 5 },
-      messages: { used: 4560, limit: 10000 },
-      support: "Priority",
-    },
-  };
+  const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
+  const { data: plans = [], isLoading: plansLoading } = useSubscriptionPlans();
+  const updateSubscription = useUpdateSubscription();
 
-  const plans = [
-    {
-      name: "Free",
-      price: 0,
-      description: "Perfect for getting started",
-      features: ["1 chatbot", "150 messages/month", "Community support", "Basic analytics"],
-      popular: false,
-    },
-    {
-      name: "Pro",
-      price: 29,
-      description: "Great for growing businesses",
-      features: ["5 chatbots", "10,000 messages/month", "Priority support", "Advanced analytics", "Custom branding"],
-      popular: true,
-    },
-    {
-      name: "Enterprise",
-      price: 99,
-      description: "For large organizations",
-      features: [
-        "50 chatbots",
-        "100,000 messages/month",
-        "24/7 phone support",
-        "Advanced analytics",
-        "Custom branding",
-      ],
-      popular: false,
-    },
-  ];
+  const currentPlan = plans.find((p) => p.id === subscription?.plan);
 
-  const handleChangePlan = (planName: string) => {
-    setSelectedPlan(planName);
-    console.log(`Changing to ${planName} plan`);
+  const handleChangePlan = (planId: string) => {
+    updateSubscription.mutate({ plan: planId });
     setIsChangePlanOpen(false);
   };
+
+  if (subscriptionLoading || plansLoading || !currentPlan) {
+    return <div>Loading...</div>;
+  }
 
   const handleCancelSubscription = () => {
     console.log("Cancelling subscription");
@@ -114,49 +80,16 @@ const SubscriptionPage = () => {
                           Current Plan: {currentPlan.name}
                         </CardTitle>
                         <CardDescription>
-                          ${currentPlan.price}/{currentPlan.billing} • Renews on February 15, 2024
+                          ${currentPlan.price}/{currentPlan.interval} • Renews on{' '}
+                          {subscription?.currentPeriodEnd
+                            ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+                            : 'N/A'}
                         </CardDescription>
                       </div>
-                      <Badge variant="secondary">Active</Badge>
+                      <Badge variant="secondary">{subscription?.status}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Usage Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Chatbots
-                          </span>
-                          <span>
-                            {currentPlan.usage.chatbots.used} of {currentPlan.usage.chatbots.limit}
-                          </span>
-                        </div>
-                        <Progress
-                          value={(currentPlan.usage.chatbots.used / (currentPlan.usage.chatbots.limit as number)) * 100}
-                          className="h-2"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4" />
-                            Messages
-                          </span>
-                          <span>
-                            {currentPlan.usage.messages.used.toLocaleString()} of{" "}
-                            {currentPlan.usage.messages.limit.toLocaleString()}
-                          </span>
-                        </div>
-                        <Progress
-                          value={(currentPlan.usage.messages.used / currentPlan.usage.messages.limit) * 100}
-                          className="h-2"
-                        />
-                      </div>
-                    </div>
-
                     {/* Current Plan Features */}
                     <div>
                       <h4 className="font-medium mb-3">Plan Features</h4>
@@ -181,51 +114,59 @@ const SubscriptionPage = () => {
                             <DialogDescription>Select the plan that best fits your needs</DialogDescription>
                           </DialogHeader>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                            {plans.map((plan) => (
-                              <Card
-                                key={plan.name}
-                                className={`relative flex flex-col ${
-                                  plan.popular ? "border-blue-500 ring-1 ring-blue-500" : ""
-                                } ${plan.name === currentPlan.name ? "bg-gray-50 dark:bg-gray-900" : ""}`}
-                              >
-                                {plan.popular && (
-                                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                    <Badge className="bg-blue-500 text-white">Most Popular</Badge>
-                                  </div>
-                                )}
-                                <CardHeader className="text-center">
-                                  <CardTitle className="flex items-center justify-center gap-2">
-                                    <Zap className="h-5 w-5" />
-                                    {plan.name}
-                                  </CardTitle>
-                                  <div className="space-y-2">
-                                    <div className="text-3xl font-bold">${plan.price}</div>
-                                    <div className="text-sm text-gray-500">
-                                      {plan.price === 0 ? "Forever" : "per month"}
+                            {plans.map((plan) => {
+                              const isCurrent = plan.id === currentPlan.id;
+                              const isPopular = plan.isPopular || plan.id === "pro";
+                              return (
+                                <Card
+                                  key={plan.id}
+                                  className={`relative flex flex-col ${
+                                    isPopular ? "border-blue-500 ring-1 ring-blue-500" : ""
+                                  } ${isCurrent ? "bg-gray-50 dark:bg-gray-900" : ""}`}
+                                >
+                                  {isPopular && (
+                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                                      <Badge className="bg-blue-500 text-white">Most Popular</Badge>
                                     </div>
-                                  </div>
-                                  <CardDescription>{plan.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex flex-col flex-1">
-                                  <div className="space-y-2 flex-1">
-                                    {plan.features.map((feature, index) => (
-                                      <div key={index} className="flex items-center gap-2 text-sm">
-                                        <Check className="h-4 w-4 text-green-500" />
-                                        <span>{feature}</span>
+                                  )}
+                                  <CardHeader className="text-center">
+                                    <CardTitle className="flex items-center justify-center gap-2">
+                                      <Zap className="h-5 w-5" />
+                                      {plan.name}
+                                    </CardTitle>
+                                    <div className="space-y-2">
+                                      <div className="text-3xl font-bold">${plan.price}</div>
+                                      <div className="text-sm text-gray-500">
+                                        {plan.price === 0
+                                          ? "Forever"
+                                          : plan.interval === "year"
+                                          ? "per year"
+                                          : "per month"}
                                       </div>
-                                    ))}
-                                  </div>
-                                  <Button
-                                    className="w-full mt-6"
-                                    variant={plan.name === currentPlan.name ? "secondary" : "default"}
-                                    disabled={plan.name === currentPlan.name}
-                                    onClick={() => handleChangePlan(plan.name)}
-                                  >
-                                    {plan.name === currentPlan.name ? "Current Plan" : "Select Plan"}
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            ))}
+                                    </div>
+                                    {plan.description && <CardDescription>{plan.description}</CardDescription>}
+                                  </CardHeader>
+                                  <CardContent className="flex flex-col flex-1">
+                                    <div className="space-y-2 flex-1">
+                                      {plan.features.map((feature, index) => (
+                                        <div key={index} className="flex items-center gap-2 text-sm">
+                                          <Check className="h-4 w-4 text-green-500" />
+                                          <span>{feature}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <Button
+                                      className="w-full mt-6"
+                                      variant={isCurrent ? "secondary" : "default"}
+                                      disabled={isCurrent}
+                                      onClick={() => handleChangePlan(plan.id)}
+                                    >
+                                      {isCurrent ? "Current Plan" : "Select Plan"}
+                                    </Button>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
                           </div>
                         </DialogContent>
                       </Dialog>

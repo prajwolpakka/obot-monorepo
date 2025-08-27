@@ -26,6 +26,7 @@ import type { ResetPasswordDto } from "./dto/reset-password.dto";
 import type { SignupDto } from "./dto/signup.dto";
 import type { VerifyEmailDto } from "./dto/verify-email.dto";
 import { ILoginResponse, ISignupResponse } from "./interfaces/auth.interface";
+import { SubscriptionService } from "../subscription/subscription.service";
 
 @Injectable()
 export class AuthService {
@@ -39,7 +40,8 @@ export class AuthService {
     @Inject(forwardRef(() => MailService))
     private mailService: MailService,
     @Inject(forwardRef(() => TokensService))
-    private tokensService: TokensService
+    private tokensService: TokensService,
+    private subscriptionService: SubscriptionService
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -83,11 +85,12 @@ export class AuthService {
     const token = this.jwtService.sign(payload);
     this.setCookieToken(res, token);
 
+    const subscription = await this.subscriptionService.findOrCreateByUserId(user.id);
     const { password, ...userWithoutPassword } = user;
 
     return {
       message: "Login successful",
-      user: userWithoutPassword,
+      user: { ...userWithoutPassword, subscription },
     };
   }
 
@@ -120,6 +123,8 @@ export class AuthService {
       fullName,
       isEmailVerified: false,
     });
+
+    await this.subscriptionService.create({ plan: 'starter', status: 'active' }, newUser.id);
 
     const verificationToken = await this.tokensService.createToken(
       newUser.id,

@@ -19,6 +19,7 @@ export class UsersService {
     this.logger.log(`Attempting to create user with email: ${createUserDto.email}`, "create");
     const existingUser = await this.usersRepository.findOne({
       where: { email: createUserDto.email },
+      relations: ['subscription'],
     });
 
     if (existingUser) {
@@ -51,7 +52,7 @@ export class UsersService {
 
   async findOne(id: string): Promise<User> {
     this.logger.log(`Finding user with ID: ${id}`, "findOne");
-    const user = await this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({ where: { id }, relations: ['subscription'] });
 
     if (!user) {
       this.logger.warn(`User with ID ${id} not found`, "findOne");
@@ -63,7 +64,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     this.logger.log(`Finding user by email: ${email}`, "findByEmail");
-    const user = await this.usersRepository.findOne({ where: { email } });
+    const user = await this.usersRepository.findOne({ where: { email }, relations: ['subscription'] });
     if (user) {
       this.logger.log(`Found user with email: ${email}, ID: ${user.id}`, "findByEmail");
     } else {

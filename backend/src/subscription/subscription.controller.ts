@@ -11,6 +11,13 @@ import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto/subscription
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
+  @Get('plans')
+  @ApiOperation({ summary: 'Get available subscription plans' })
+  @ApiResponse({ status: 200, description: 'Plans retrieved successfully' })
+  getPlans() {
+    return this.subscriptionService.getPlans();
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create or upgrade subscription' })
   @ApiResponse({ status: 201, description: 'Subscription created successfully' })
@@ -23,7 +30,7 @@ export class SubscriptionController {
   @ApiResponse({ status: 200, description: 'Subscription retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   findOne(@Request() req) {
-    return this.subscriptionService.findByUserId(req.user.id);
+    return this.subscriptionService.findOrCreateByUserId(req.user.id);
   }
 
   @Patch()

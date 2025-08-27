@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { IAuth, IUser } from "../models/types";
+import { ISubscription } from "@/subscription/models/types";
 
 const initialState: IAuth = {
   user: null,
@@ -21,6 +22,11 @@ export const authSlice = createSlice({
     updateUserName: (state, action: PayloadAction<{ fullName: string }>) => {
       state.user = { ...state.user, fullName: action.payload.fullName };
     },
+    updateUserSubscription: (state, action: PayloadAction<ISubscription>) => {
+      if (state.user) {
+        state.user.subscription = action.payload;
+      }
+    },
     resetAuthData: (state) => {
       state.user = null;
       state.isAuthenticated = false;
@@ -28,5 +34,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setAuthData, setUser, updateUserName, resetAuthData } = authSlice.actions;
+export const { setAuthData, setUser, updateUserName, updateUserSubscription, resetAuthData } = authSlice.actions;
 export default authSlice.reducer;

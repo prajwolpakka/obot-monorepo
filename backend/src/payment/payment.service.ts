@@ -128,7 +128,7 @@ export class PaymentService {
     }
 
     // Validate plan type
-    const validPlans = ['free', 'basic', 'premium'] as const;
+    const validPlans = ['starter', 'pro', 'enterprise'] as const;
     if (!validPlans.includes(plan as any)) {
       this.logger.error(`Invalid plan type: ${plan}`);
       return;
@@ -136,7 +136,7 @@ export class PaymentService {
 
     // Create or update subscription
     await this.subscriptionService.create({
-      plan: plan as 'free' | 'basic' | 'premium',
+      plan: plan as 'starter' | 'pro' | 'enterprise',
       status: 'active',
       stripeSubscriptionId: session.subscription as string,
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
@@ -194,7 +194,7 @@ export class PaymentService {
     });
 
     await this.subscriptionService.update(userId, {
-      status: 'cancelling',
+      status: 'cancelled',
     });
 
     return { message: 'Subscription will be cancelled at the end of the billing period' };

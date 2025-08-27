@@ -1,6 +1,6 @@
 import api from "@/common/services/api";
 import { ISubscribeSchema, IUpdateSubscriptionSchema } from "../models/schema";
-import { ISubscription } from "../models/types";
+import { ISubscription, ISubscriptionPlan } from "../models/types";
 
 export const subscriptionApi = {
   get: async () => {
@@ -32,7 +32,7 @@ export const subscriptionApi = {
   },
 
   getPlans: async () => {
-    const response = await api.get("/subscription/plans");
+    const response = await api.get<ISubscriptionPlan[]>("/subscription/plans");
     return response.data;
   },
 };

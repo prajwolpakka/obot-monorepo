@@ -5,6 +5,7 @@ import { PassportModule } from "@nestjs/passport";
 import { MailModule } from "../mail/mail.module";
 import { TokensModule } from "../tokens/tokens.module";
 import { UsersModule } from "../users/users.module";
+import { SubscriptionModule } from "../subscription/subscription.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { WebSocketAuthService } from "./websocket-auth.service";
@@ -19,6 +20,7 @@ import { LocalStrategy } from "./strategies/local.strategy";
     PassportModule,
     forwardRef(() => MailModule),
     forwardRef(() => TokensModule),
+    forwardRef(() => SubscriptionModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

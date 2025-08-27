@@ -64,7 +64,7 @@ export const mockSubscriptionPlans: ISubscriptionPlan[] = [
 
 export const mockCurrentSubscription: ISubscription = {
   id: 'sub_123',
-  planId: 'pro',
+  plan: 'pro',
   status: 'active',
   currentPeriodStart: '2024-01-01T00:00:00Z',
   currentPeriodEnd: '2024-02-01T00:00:00Z',

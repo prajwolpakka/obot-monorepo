@@ -4,6 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Response as ExpressResponse } from "express";
 import { UsersService } from "../users/users.service";
+import { SubscriptionService } from "../subscription/subscription.service";
 import { AuthService } from "./auth.service";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
@@ -25,7 +26,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly subscriptionService: SubscriptionService
   ) {}
 
   @UseGuards(LocalAuthGuard)
@@ -114,11 +116,12 @@ export class AuthController {
       throw new NotFoundException("User not found");
     }
 
+    const subscription = await this.subscriptionService.findOrCreateByUserId(userId);
     const { password, ...userWithoutPassword } = completeUser;
 
     this.logger.log(`Profile fetched successfully for user ${userId}`, "getProfile");
     return {
-      user: userWithoutPassword,
+      user: { ...userWithoutPassword, subscription },
     };
   }
 

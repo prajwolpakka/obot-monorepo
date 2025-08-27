@@ -6,8 +6,8 @@ export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ enum: ['free', 'basic', 'premium'] })
-  plan: 'free' | 'basic' | 'premium';
+  @Column({ enum: ['starter', 'pro', 'enterprise'] })
+  plan: 'starter' | 'pro' | 'enterprise';
 
   @Column({ enum: ['active', 'inactive', 'cancelled', 'expired'] })
   status: 'active' | 'inactive' | 'cancelled' | 'expired';

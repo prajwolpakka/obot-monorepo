@@ -1,4 +1,5 @@
 import { IBaseEntity } from "@/common/models/types";
+import { ISubscription } from "@/subscription/models/types";
 
 export interface IUser extends IBaseEntity {
   id: string;
@@ -6,6 +7,7 @@ export interface IUser extends IBaseEntity {
   fullName: string;
   isEmailVerified: boolean;
   lastLogin?: Date;
+  subscription?: ISubscription;
 }
 
 export interface IAuth {

@@ -2,25 +2,24 @@
 export interface ISubscriptionPlan {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
   currency: 'USD' | 'EUR' | 'GBP';
   interval: 'month' | 'year';
   features: string[];
   isPopular?: boolean;
-  maxChatbots: number;
-  maxDocuments: number;
-  maxConversations: number;
+  maxChatbots?: number;
+  maxDocuments?: number;
+  maxConversations?: number;
 }
 
 export interface ISubscription {
   id: string;
-  planId: string;
-  status: 'active' | 'canceled' | 'expired' | 'trial';
+  plan: 'starter' | 'pro' | 'enterprise';
+  status: 'active' | 'inactive' | 'cancelled' | 'expired';
   currentPeriodStart: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
-  trialEnd?: string;
   createdAt: string;
   updatedAt: string;
 }

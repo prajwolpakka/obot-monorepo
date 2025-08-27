@@ -3,13 +3,14 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class CreateSubscriptionDto {
-  @ApiProperty({ description: 'Subscription plan type', enum: ['free', 'basic', 'premium'], example: 'basic' })
-  @IsEnum(['free', 'basic', 'premium'])
-  plan: 'free' | 'basic' | 'premium';
+  @ApiProperty({ description: 'Subscription plan type', enum: ['starter', 'pro', 'enterprise'], example: 'starter' })
+  @IsEnum(['starter', 'pro', 'enterprise'])
+  plan: 'starter' | 'pro' | 'enterprise';
 
-  @ApiProperty({ description: 'Subscription status', enum: ['active', 'inactive', 'cancelled', 'expired'], example: 'active' })
+  @ApiProperty({ description: 'Subscription status', enum: ['active', 'inactive', 'cancelled', 'expired'], example: 'active', required: false })
+  @IsOptional()
   @IsEnum(['active', 'inactive', 'cancelled', 'expired'])
-  status: 'active' | 'inactive' | 'cancelled' | 'expired';
+  status?: 'active' | 'inactive' | 'cancelled' | 'expired';
 
   @ApiProperty({ description: 'Stripe subscription ID', required: false })
   @IsOptional()
@@ -24,15 +25,15 @@ export class CreateSubscriptionDto {
 }
 
 export class UpdateSubscriptionDto {
-  @ApiProperty({ description: 'Updated subscription plan type', enum: ['free', 'basic', 'premium'], example: 'premium', required: false })
+  @ApiProperty({ description: 'Updated subscription plan type', enum: ['starter', 'pro', 'enterprise'], example: 'pro', required: false })
   @IsOptional()
-  @IsEnum(['free', 'basic', 'premium'])
-  plan?: 'free' | 'basic' | 'premium';
+  @IsEnum(['starter', 'pro', 'enterprise'])
+  plan?: 'starter' | 'pro' | 'enterprise';
 
-  @ApiProperty({ description: 'Subscription status', enum: ['active', 'inactive', 'cancelled', 'cancelling', 'expired'], example: 'active', required: false })
+  @ApiProperty({ description: 'Subscription status', enum: ['active', 'inactive', 'cancelled', 'expired'], example: 'active', required: false })
   @IsOptional()
-  @IsEnum(['active', 'inactive', 'cancelled', 'cancelling', 'expired'])
-  status?: 'active' | 'inactive' | 'cancelled' | 'cancelling' | 'expired';
+  @IsEnum(['active', 'inactive', 'cancelled', 'expired'])
+  status?: 'active' | 'inactive' | 'cancelled' | 'expired';
 
   @ApiProperty({ description: 'Stripe subscription ID', required: false })
   @IsOptional()
