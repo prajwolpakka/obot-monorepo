@@ -12,7 +12,8 @@ import OverviewTab from "../components/create-tabs/overview-tab";
 import IntegrationModal from "../components/integration-modal";
 import { ICreateChatbotSchema, createChatbotSchema } from "../models/schema";
 import { chatbotsUrl } from "../routes";
-import { useCreateChatbot } from "../services/hooks";
+import { useCreateChatbot, useChatbots } from "../services/hooks";
+import { useSubscription, useSubscriptionPlans } from "@/subscription/services/hooks";
 
 const CreateChatbotPage: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -23,6 +24,12 @@ const CreateChatbotPage: React.FC = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const { data: subscription } = useSubscription();
+  const { data: plans = [] } = useSubscriptionPlans();
+  const { data: chatbots = [] } = useChatbots();
+  const currentPlan = plans.find((p) => p.id === subscription?.plan);
+  const canCreate = (currentPlan?.maxChatbots ?? Infinity) > chatbots.length;
 
   const handleDocumentsChange = (documents: string[]) => {
     setDocumentFiles(documents);
@@ -103,6 +110,15 @@ const CreateChatbotPage: React.FC = () => {
         setActiveTab("files");
         return;
       }
+    }
+
+    if (!canCreate) {
+      toast({
+        title: "Chatbot limit reached",
+        description: `Your current plan allows ${currentPlan?.maxChatbots} chatbots.`,
+        variant: "destructive",
+      });
+      return;
     }
 
     // If valid or errors are in current tab, proceed with submission
@@ -200,11 +216,16 @@ const CreateChatbotPage: React.FC = () => {
             </TabsContent>
           </div>
 
+          {!canCreate && (
+            <p className="text-sm text-red-500 px-4">
+              You have reached the limit of {currentPlan?.maxChatbots} chatbots for your plan.
+            </p>
+          )}
           <div className="border-t bg-white px-4 py-3 flex gap-3">
             <Button variant="outline" className="flex-1" onClick={handleRevert} type="button">
               Reset
             </Button>
-            <Button onClick={handleCreateClick} className="flex-1" disabled={isPending}>
+            <Button onClick={handleCreateClick} className="flex-1" disabled={isPending || !canCreate}>
               {isPending ? "Creating..." : "Create"}
             </Button>
           </div>

@@ -4,6 +4,7 @@ export interface ISubscriptionPlan {
   name: string;
   description?: string;
   price: number;
+  priceId?: string;
   currency: 'USD' | 'EUR' | 'GBP';
   interval: 'month' | 'year';
   features: string[];
@@ -11,6 +12,7 @@ export interface ISubscriptionPlan {
   maxChatbots?: number;
   maxDocuments?: number;
   maxConversations?: number;
+  maxMessages?: number;
 }
 
 export interface ISubscription {

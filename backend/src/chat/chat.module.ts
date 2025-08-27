@@ -10,11 +10,13 @@ import { Chatbot } from '../chatbots/entities/chatbot.entity';
 import { ChatbotsService } from '../chatbots/chatbots.service';
 import { ChatbotDocument } from '../chatbots/entities/chatbot-document.entity';
 import { Document } from '../documents/entities/document.entity';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Chat, ChatMessage, Chatbot, ChatbotDocument, Document]),
     forwardRef(() => AuthModule),
+    SubscriptionModule,
   ],
   controllers: [ChatController],
   providers: [ChatGateway, ChatService, ChatbotsService],

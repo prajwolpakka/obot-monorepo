@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Chat } from './entities/chat.entity';
@@ -7,6 +7,7 @@ import { Chatbot } from '../chatbots/entities/chatbot.entity';
 import { ChatbotDocument } from '../chatbots/entities/chatbot-document.entity';
 import { ConfigService } from '@nestjs/config';
 import { ChatRequestDto } from './dto/chat-request.dto';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 export interface SaveMessageDto {
   content: string;
@@ -35,6 +36,7 @@ export class ChatService {
     @InjectRepository(ChatbotDocument)
     private chatbotDocumentRepository: Repository<ChatbotDocument>,
     private configService: ConfigService,
+    private subscriptionService: SubscriptionService,
   ) {
     this.brainApiUrl = this.configService.get<string>('BRAIN_API_URL', 'http://localhost:4002');
     this.logger.log(`🧠 Brain API URL configured: ${this.brainApiUrl}`);
@@ -50,6 +52,26 @@ export class ChatService {
 
     if (!chatbot) {
       throw new NotFoundException('Chatbot not found');
+    }
+
+    const subscription = await this.subscriptionService.findOrCreateByUserId(chatbot.userId);
+    const plan = this.subscriptionService.getPlanById(subscription.plan);
+    if (plan?.maxMessages !== undefined) {
+      const startOfMonth = new Date();
+      startOfMonth.setUTCDate(1);
+      startOfMonth.setUTCHours(0, 0, 0, 0);
+
+      const messageCount = await this.chatMessageRepository
+        .createQueryBuilder('message')
+        .leftJoin('message.chat', 'chat')
+        .leftJoin('chat.chatbot', 'cb')
+        .where('cb.userId = :userId', { userId: chatbot.userId })
+        .andWhere('message.createdAt >= :start', { start: startOfMonth })
+        .getCount();
+
+      if (messageCount >= plan.maxMessages) {
+        throw new BadRequestException('Message limit reached for your current plan');
+      }
     }
 
     // Find or create chat session

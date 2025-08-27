@@ -24,6 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
 import { AlertTriangle, BarChart, Check, CreditCard, Crown, Zap } from "lucide-react";
 import { useState } from "react";
+import { subscriptionApi } from "../services/api";
 import { useSubscription, useSubscriptionPlans, useUpdateSubscription } from "../services/hooks";
 
 const SubscriptionPage = () => {
@@ -35,8 +36,15 @@ const SubscriptionPage = () => {
 
   const currentPlan = plans.find((p) => p.id === subscription?.plan);
 
-  const handleChangePlan = (planId: string) => {
-    updateSubscription.mutate({ plan: planId });
+  const handleChangePlan = async (planId: string) => {
+    const selectedPlan = plans.find((p) => p.id === planId);
+    if (!selectedPlan) return;
+    if (selectedPlan.price === 0) {
+      updateSubscription.mutate({ plan: planId });
+    } else if (selectedPlan.priceId) {
+      const session = await subscriptionApi.createCheckoutSession(selectedPlan.priceId, planId);
+      window.location.href = session.checkoutUrl;
+    }
     setIsChangePlanOpen(false);
   };
 
@@ -80,10 +88,10 @@ const SubscriptionPage = () => {
                           Current Plan: {currentPlan.name}
                         </CardTitle>
                         <CardDescription>
-                          ${currentPlan.price}/{currentPlan.interval} • Renews on{' '}
-                          {subscription?.currentPeriodEnd
-                            ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
-                            : 'N/A'}
+                          ${currentPlan.price}/{currentPlan.interval}
+                          {currentPlan.price > 0 && subscription?.currentPeriodEnd
+                            ? ` • Renews on ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                            : ''}
                         </CardDescription>
                       </div>
                       <Badge variant="secondary">{subscription?.status}</Badge>
@@ -171,40 +179,42 @@ const SubscriptionPage = () => {
                         </DialogContent>
                       </Dialog>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline">Cancel Subscription</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="flex items-center gap-2">
-                              <AlertTriangle className="h-5 w-5 text-red-500" />
-                              Cancel Subscription
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="space-y-3">
-                              <p>Are you sure you want to cancel your subscription?</p>
-                              <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg space-y-2">
-                                <p className="font-medium">What happens when you cancel:</p>
-                                <ul className="text-sm space-y-1 list-disc list-inside">
-                                  <li>Your plan will remain active until February 15, 2024</li>
-                                  <li>You'll lose access to Pro features after this date</li>
-                                  <li>Your chatbots will be limited to Basic plan features</li>
-                                  <li>You can resubscribe at any time</li>
-                                </ul>
-                              </div>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-red-600 hover:bg-red-700"
-                              onClick={handleCancelSubscription}
-                            >
-                              Yes, Cancel
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {currentPlan.price > 0 && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline">Cancel Subscription</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-red-500" />
+                                Cancel Subscription
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="space-y-3">
+                                <p>Are you sure you want to cancel your subscription?</p>
+                                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg space-y-2">
+                                  <p className="font-medium">What happens when you cancel:</p>
+                                  <ul className="text-sm space-y-1 list-disc list-inside">
+                                    <li>Your plan will remain active until February 15, 2024</li>
+                                    <li>You'll lose access to Pro features after this date</li>
+                                    <li>Your chatbots will be limited to Basic plan features</li>
+                                    <li>You can resubscribe at any time</li>
+                                  </ul>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={handleCancelSubscription}
+                              >
+                                Yes, Cancel
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -218,24 +228,28 @@ const SubscriptionPage = () => {
                     <CardDescription>Your recent billing transactions</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {[
-                        { date: "Jan 15, 2024", amount: "$29.00", status: "Paid", description: "Pro Plan - Monthly" },
-                        { date: "Dec 15, 2023", amount: "$29.00", status: "Paid", description: "Pro Plan - Monthly" },
-                        { date: "Nov 15, 2023", amount: "$29.00", status: "Paid", description: "Pro Plan - Monthly" },
-                      ].map((transaction, index) => (
-                        <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                          <div>
-                            <div className="font-medium">{transaction.description}</div>
-                            <div className="text-sm text-gray-500">{transaction.date}</div>
+                    {currentPlan.price === 0 ? (
+                      <p>No billing history for free plan.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {[
+                          { date: "Jan 15, 2024", amount: "$29.00", status: "Paid", description: "Pro Plan - Monthly" },
+                          { date: "Dec 15, 2023", amount: "$29.00", status: "Paid", description: "Pro Plan - Monthly" },
+                          { date: "Nov 15, 2023", amount: "$29.00", status: "Paid", description: "Pro Plan - Monthly" },
+                        ].map((transaction, index) => (
+                          <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                            <div>
+                              <div className="font-medium">{transaction.description}</div>
+                              <div className="text-sm text-gray-500">{transaction.date}</div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{transaction.amount}</span>
+                              <Badge variant="secondary">{transaction.status}</Badge>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium">{transaction.amount}</span>
-                            <Badge variant="secondary">{transaction.status}</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

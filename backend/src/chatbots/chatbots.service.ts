@@ -8,6 +8,7 @@ import { CreateChatbotDto } from "./dto/create-chatbot.dto";
 import { UpdateChatbotDto } from "./dto/update-chatbot.dto";
 import { ChatbotDocument } from "./entities/chatbot-document.entity";
 import { Chatbot } from "./entities/chatbot.entity";
+import { SubscriptionService } from "../subscription/subscription.service";
 
 @Injectable()
 export class ChatbotsService {
@@ -17,7 +18,8 @@ export class ChatbotsService {
     @InjectRepository(ChatbotDocument)
     private chatbotDocumentRepository: Repository<ChatbotDocument>,
     @InjectRepository(Document)
-    private documentRepository: Repository<Document>
+    private documentRepository: Repository<Document>,
+    private subscriptionService: SubscriptionService,
   ) {}
 
   private transformChatbot(chatbot: Chatbot): any {
@@ -54,6 +56,15 @@ export class ChatbotsService {
     iconFile?: Express.Multer.File,
     uploadedFiles?: Express.Multer.File[]
   ): Promise<any> {
+    const subscription = await this.subscriptionService.findOrCreateByUserId(userId);
+    const plan = this.subscriptionService.getPlanById(subscription.plan);
+    if (plan?.maxChatbots !== undefined) {
+      const existing = await this.chatbotRepository.count({ where: { userId } });
+      if (existing >= plan.maxChatbots) {
+        throw new BadRequestException('Chatbot limit reached for your current plan');
+      }
+    }
+
     // Extract selectedDocuments, files, triggers, and allowedDomains from DTO
     const { selectedDocuments, files, triggers, allowedDomains, ...chatbotData } = createChatbotDto;
 
