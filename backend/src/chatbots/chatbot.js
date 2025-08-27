@@ -12,6 +12,13 @@
     document.head.appendChild(script);
   }
 
+  // Load marked.js for markdown rendering if not already loaded
+  if (!window.marked) {
+    const mdScript = document.createElement("script");
+    mdScript.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+    document.head.appendChild(mdScript);
+  }
+
   // Chatbot class
   function Chatbot(options) {
     // Core required props
@@ -51,11 +58,7 @@
     this.messages = [];
     this.sessionId = this.generateSessionId();
     this.configLoaded = false;
-  
-    // Rate limiting
-    this.lastRequestTime = 0;
-    this.minRequestInterval = 10000; // 10 seconds between requests (Gemini has better limits)
-    this.isRateLimited = false;
+    this.awaitingResponse = false;
 
     // DOM references
     this.container = null;
@@ -238,12 +241,16 @@
     // Handle streaming completion
     this.socket.on("message-complete", (data) => {
       this.completeStreamingMessage(data.messageId, data.finalContent);
+      this.awaitingResponse = false;
+      this.sendButton.disabled = false;
     });
 
     // Fallback for non-streaming responses (backward compatibility)
     this.socket.on("message-response", (data) => {
       this.removeThinkingIndicator();
       this.addMessageWithReferences("Bot", data.message);
+      this.awaitingResponse = false;
+      this.sendButton.disabled = false;
     });
 
     this.socket.on("chat-history", (data) => {
@@ -265,17 +272,12 @@
       if (streamingMessage) {
         streamingMessage.remove();
       }
-
-      // Check if it's a rate limit error
-      if (data.error && data.error.includes("429")) {
-        this.addMessageWithReferences("Bot", "🚦 Rate limit reached! Please wait a moment before sending another message.");
-        // Temporarily increase rate limit interval
-        this.minRequestInterval = Math.min(this.minRequestInterval * 2, 120000); // Max 2 minutes
-      } else {
-        this.addMessageWithReferences("Bot", "Sorry, something went wrong! Please try again.");
-      }
+      this.addMessageWithReferences("Bot", "Sorry, something went wrong! Please try again.");
 
       console.error("Chat error:", data.error);
+
+      this.awaitingResponse = false;
+      this.sendButton.disabled = false;
     });
 
     this.socket.on("connect_error", (error) => {
@@ -680,9 +682,8 @@
     if (this.closeButton) {
       this.closeButton.addEventListener("click", this.toggleChat.bind(this));
     }
-
-    this.input.addEventListener("keypress", this.handleInput.bind(this));
     this.sendButton.addEventListener("click", this.handleSend.bind(this));
+    this.input.addEventListener("keydown", this.handleInputKeyDown.bind(this));
 
     // Setup triggers
     this.updateTriggerButtons();
@@ -715,28 +716,11 @@
   Chatbot.prototype.sendMessage = function () {
     const userMessage = this.input.value.trim();
     if (!userMessage) return;
+    if (this.awaitingResponse) return;
 
-    // Check rate limiting
-    const now = Date.now();
-    if (now - this.lastRequestTime < this.minRequestInterval) {
-      const waitTime = this.minRequestInterval - (now - this.lastRequestTime);
-      const waitSeconds = Math.ceil(waitTime / 1000);
+    this.awaitingResponse = true;
+    this.sendButton.disabled = true;
 
-      if (!this.isRateLimited) {
-        this.isRateLimited = true;
-        this.addMessageWithReferences("Bot", `⏱️ Please wait ${waitSeconds} seconds before sending another message to avoid rate limits.`);
-        this.input.value = "";
-
-        // Re-enable input after wait time
-        setTimeout(() => {
-          this.isRateLimited = false;
-          this.addMessageWithReferences("Bot", "You can now send another message! 💬");
-        }, waitTime);
-      }
-      return;
-    }
-
-    this.lastRequestTime = now;
     this.addMessage("You", userMessage);
     this.hideTriggerArea();
 
@@ -748,6 +732,8 @@
       // Demo mode - show preview message
       setTimeout(() => {
         this.addMessageWithTyping("Bot", "🚀 This is preview mode. After integration, you'll get AI responses!");
+        this.awaitingResponse = false;
+        this.sendButton.disabled = false;
       }, 500);
     } else {
       // Production mode - show thinking indicator immediately
@@ -768,6 +754,8 @@
             "Bot",
             `Thanks for your message! You said: "${userMessage}". I'm currently in offline mode, but I'd love to help you when I'm back online. Please try again in a moment or check your internet connection.`
           );
+          this.awaitingResponse = false;
+          this.sendButton.disabled = false;
         }, 1000);
       }
     }
@@ -871,8 +859,8 @@
       // Parse and display with references
       const { answer, references } = this.parseResponseWithReferences(finalContent);
 
-      // Update the content
-      contentElement.textContent = answer;
+      // Update the content with markdown rendering
+      contentElement.innerHTML = this.renderMarkdown(answer);
 
       // Add references if they exist
       if (references && references.length > 0) {
@@ -928,8 +916,10 @@
     if (sender === "You") {
       contentDiv.style.backgroundColor = color;
       contentDiv.style.color = "white";
+      contentDiv.innerHTML = answer;
+    } else {
+      contentDiv.innerHTML = this.renderMarkdown(answer);
     }
-    contentDiv.innerHTML = answer;
 
     // Add references below message if they exist
     if (references && references.length > 0) {
@@ -994,6 +984,19 @@
     return { answer, references: references.length > 0 ? references : null };
   };
 
+  // Convert markdown text to HTML with a graceful fallback
+  Chatbot.prototype.renderMarkdown = function (text) {
+    if (window.marked) {
+      if (typeof window.marked.parse === "function") {
+        return window.marked.parse(text);
+      }
+      if (typeof window.marked === "function") {
+        return window.marked(text);
+      }
+    }
+    return text.replace(/\n/g, "<br>");
+  };
+
   // Add a message to the chat (legacy method)
   Chatbot.prototype.addMessage = function (sender, text) {
     this.messages.push({ sender, text });
@@ -1021,11 +1024,16 @@
       finalColor: color,
     });
 
-    const backgroundStyle = sender === "You" ? `style="background-color: ${color}; color: white;"` : "";
-    messageElement.innerHTML = `
-      <div class="message-content" ${backgroundStyle}>${text}</div>
-    `;
-
+    const contentDiv = document.createElement("div");
+    contentDiv.classList.add("message-content");
+    if (sender === "You") {
+      contentDiv.style.backgroundColor = color;
+      contentDiv.style.color = "white";
+      contentDiv.textContent = text;
+    } else {
+      contentDiv.innerHTML = this.renderMarkdown(text);
+    }
+    messageElement.appendChild(contentDiv);
     this.messagesDiv.appendChild(messageElement);
     this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
 
@@ -1089,7 +1097,7 @@
         setTimeout(typeWriter, delay);
       } else {
         // Remove cursor and show final text
-        messageContent.innerHTML = text;
+        messageContent.innerHTML = this.renderMarkdown(text);
         this.updateTriggerButtons();
       }
     };
@@ -1137,10 +1145,13 @@
     }
   };
 
-  // Handle input keypress (Enter key)
-  Chatbot.prototype.handleInput = function (e) {
-    if (e.key === "Enter" && this.input.value.trim()) {
-      this.sendMessage();
+  // Handle Enter key to send message when ready
+  Chatbot.prototype.handleInputKeyDown = function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!this.awaitingResponse) {
+        this.handleSend();
+      }
     }
   };
 
