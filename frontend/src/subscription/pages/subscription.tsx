@@ -26,6 +26,7 @@ import { AlertTriangle, BarChart, Check, CreditCard, Crown, Zap } from "lucide-r
 import { useState } from "react";
 import { subscriptionApi } from "../services/api";
 import { useSubscription, useSubscriptionPlans, useUpdateSubscription } from "../services/hooks";
+import SubscriptionSkeleton from "../components/subscription-skeleton";
 
 const SubscriptionPage = () => {
   const [isChangePlanOpen, setIsChangePlanOpen] = useState(false);
@@ -49,7 +50,7 @@ const SubscriptionPage = () => {
   };
 
   if (subscriptionLoading || plansLoading || !currentPlan) {
-    return <div>Loading...</div>;
+    return <SubscriptionSkeleton />;
   }
 
   const handleCancelSubscription = () => {
