@@ -204,7 +204,7 @@
 
 /* Reference styling */
 .message-references {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -221,8 +221,8 @@
 }
 
 .message-references .reference-icon {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   stroke: currentColor;
 }
