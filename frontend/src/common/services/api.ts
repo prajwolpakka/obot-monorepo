@@ -19,9 +19,19 @@ api.interceptors.response.use(
         : "Too many requests. Please try again later.";
       toast.error(message);
     }
-    // Handle unauthorized - redirect to login
+    // Handle unauthorized - redirect to login only if not already on auth pages
     else if (error.response?.status === 401) {
-      window.location.href = AuthUrl.login;
+      const currentPath = window.location.pathname;
+      const isOnAuthPage = currentPath.includes('/login') ||
+                          currentPath.includes('/signup') ||
+                          currentPath.includes('/forgot-password') ||
+                          currentPath.includes('/reset-password') ||
+                          currentPath.includes('/verify');
+
+      if (!isOnAuthPage) {
+        window.location.href = AuthUrl.login;
+      }
+      // If on auth page, let the component handle the error instead of redirecting
     }
     // Handle other errors
     else if (error.response?.data?.message) {
