@@ -72,7 +72,7 @@ export const NotificationBell = () => {
                         onClose={() => setIsOpen(false)}
                       />
                       {index < todayNotifications.length - 1 && (
-                        <Separator className="my-1" />
+                        <Separator className="my-2" />
                       )}
                     </div>
                   ))}
@@ -88,7 +88,7 @@ export const NotificationBell = () => {
                         onClose={() => setIsOpen(false)}
                       />
                       {index < earlierNotifications.length - 1 && (
-                        <Separator className="my-1" />
+                        <Separator className="my-2" />
                       )}
                     </div>
                   ))}

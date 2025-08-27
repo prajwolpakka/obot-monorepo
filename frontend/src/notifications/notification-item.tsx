@@ -23,15 +23,8 @@ const getNotificationIcon = (type: string) => {
   }
 };
 
-const getNotificationStyles = (type: string, priority: string) => {
-  const baseStyles = "rounded-lg border-l-4";
-
-  const typeStyles = {
-    info: "border-l-blue-500 bg-blue-50 dark:bg-blue-950/20",
-    success: "border-l-green-500 bg-green-50 dark:bg-green-950/20",
-    warning: "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
-    error: "border-l-red-500 bg-red-50 dark:bg-red-950/20",
-  };
+const getNotificationStyles = (priority: string) => {
+  const baseStyles = "rounded-lg";
 
   const priorityStyles = {
     urgent: "ring-2 ring-red-200 dark:ring-red-800",
@@ -40,11 +33,7 @@ const getNotificationStyles = (type: string, priority: string) => {
     low: "opacity-80",
   };
 
-  return cn(
-    baseStyles,
-    typeStyles[type as keyof typeof typeStyles],
-    priorityStyles[priority as keyof typeof priorityStyles]
-  );
+  return cn(baseStyles, priorityStyles[priority as keyof typeof priorityStyles]);
 };
 
 export const NotificationItem = ({ notification, onClose }: NotificationItemProps) => {
@@ -72,14 +61,14 @@ export const NotificationItem = ({ notification, onClose }: NotificationItemProp
   return (
     <div
       className={cn(
-        "p-3 space-y-2 cursor-pointer transition-colors hover:bg-muted/50",
-        getNotificationStyles(notification.type, notification.priority),
+        "p-4 space-y-2 cursor-pointer transition-colors hover:bg-muted/50",
+        getNotificationStyles(notification.priority),
         !notification.isRead && "bg-muted/30"
       )}
       onClick={handleMarkAsRead}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-3 flex-1">
+        <div className="flex items-start gap-4 flex-1">
           <Icon
             className={cn(
               "h-5 w-5 mt-0.5 flex-shrink-0",
