@@ -30,15 +30,21 @@ const SettingsLayout = () => {
             <div className="flex-1 min-h-0">
               <Tabs value={getCurrentTab()} onValueChange={handleTabChange} className="space-y-6 h-full flex flex-col">
                 <TabsList className="w-fit">
-                  <TabsTrigger value="profile" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="profile"
+                    className="flex items-center gap-2 w-full justify-start sm:w-auto sm:justify-center">
                     <User className="h-4 w-4" />
                     Profile
                   </TabsTrigger>
-                  <TabsTrigger value="security" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="security"
+                    className="flex items-center gap-2 w-full justify-start sm:w-auto sm:justify-center">
                     <Shield className="h-4 w-4" />
                     Security
                   </TabsTrigger>
-                  <TabsTrigger value="preferences" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="preferences"
+                    className="flex items-center gap-2 w-full justify-start sm:w-auto sm:justify-center">
                     <Globe className="h-4 w-4" />
                     Preferences
                   </TabsTrigger>

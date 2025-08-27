@@ -45,7 +45,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <Card className="w-1/2">
+    <Card className="w-full md:w-1/2">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-[6px]">

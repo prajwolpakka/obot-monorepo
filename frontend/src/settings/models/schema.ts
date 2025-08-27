@@ -5,11 +5,9 @@ export const updateProfileSchema = z.object({
 });
 
 export const updatePreferencesSchema = z.object({
-  language: z.string().optional(),
   theme: z.enum(["light", "dark", "system"]).optional(),
   emailNotifications: z.boolean().optional(),
   pushNotifications: z.boolean().optional(),
-  timezone: z.string().optional(),
 });
 
 export const updatePasswordSchema = z

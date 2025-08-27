@@ -35,7 +35,7 @@ const SecurityPage = () => {
 
   if (isLoading) {
     return (
-      <Card className="w-1/2">
+      <Card className="w-full md:w-1/2">
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span className="ml-2">Loading security settings...</span>
@@ -47,7 +47,7 @@ const SecurityPage = () => {
   return (
     <div className="space-y-6">
       {/* Security Overview */}
-      <Card className="w-1/2">
+      <Card className="w-full md:w-1/2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -73,7 +73,7 @@ const SecurityPage = () => {
       </Card>
 
       {/* Change Password */}
-      <Card className="w-1/2">
+      <Card className="w-full md:w-1/2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />

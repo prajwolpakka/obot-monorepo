@@ -76,8 +76,10 @@ export const useUpdatePassword = () => {
       queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.security });
       toast.success("Password updated successfully");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || "Failed to update password";
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to update password";
       toast.error(message);
     },
   });
