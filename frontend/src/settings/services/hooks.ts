@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { settingsApi } from "./api";
+import { IUpdatePreferencesSchema } from "../models/schema";
 
 // Query Keys
 export const SETTINGS_KEYS = {
@@ -49,12 +50,26 @@ export const useUpdatePreferences = () => {
 
   return useMutation({
     mutationFn: settingsApi.updatePreferences,
+    onMutate: async (newPreferences: IUpdatePreferencesSchema) => {
+      await queryClient.cancelQueries({ queryKey: SETTINGS_KEYS.preferences });
+      const previous = queryClient.getQueryData<IUpdatePreferencesSchema>(SETTINGS_KEYS.preferences);
+      queryClient.setQueryData<IUpdatePreferencesSchema>(
+        SETTINGS_KEYS.preferences,
+        (old) => ({ ...old, ...newPreferences })
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(SETTINGS_KEYS.preferences, context.previous);
+      }
+      toast.error("Failed to update preferences");
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.preferences });
       toast.success("Preferences updated successfully");
     },
-    onError: () => {
-      toast.error("Failed to update preferences");
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.preferences });
     },
   });
 };
