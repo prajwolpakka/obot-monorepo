@@ -201,50 +201,7 @@ export class ChatService {
     return documentIds;
   }
 
-  async chatWithBrain(chatRequest: ChatRequestDto): Promise<string> {
-    try {
-      // Get chatbot configuration if chatbotId is provided
-      let chatbotConfig: ChatbotConfig | null = null;
-      if (chatRequest.chatbotId) {
-        const chatbot = await this.chatbotRepository.findOne({
-          where: { id: chatRequest.chatbotId }
-        });
-        chatbotConfig = {
-          tone: chatbot?.tone,
-          shouldFollowUp: chatbot?.shouldFollowUp
-        };
-      }
-
-      const enhancedRequest = {
-        ...chatRequest,
-        chatbotConfig
-      };
-
-      const response = await fetch(`${this.brainApiUrl}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(enhancedRequest),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unable to read response');
-        this.logger.error(`❌ Brain API failed with status ${response.status}: ${errorText}`);
-        throw new Error(`Brain API failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      this.logger.debug(`📥 Brain API response: ${JSON.stringify(result)}`);
-      
-      const answer = result.data?.answer || 'No response from AI';
-      this.logger.log(`✅ Chat response received from brain (${answer.length} characters)`);
-      return answer;
-    } catch (error) {
-      this.logger.error(`❌ Failed to chat with brain: ${error.message}`, error.stack);
-      throw new Error('Failed to get AI response');
-    }
-  }
+  // Non-streaming path removed: we exclusively use streaming for chat
 
   async chatWithBrainStream(chatRequest: ChatRequestDto, onChunk: (chunk: string) => void): Promise<void> {
     try {

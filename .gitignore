@@ -12,6 +12,7 @@ coverage/
 # Logs
 logs
 *.log
+*.pid
 
 # IDE directories
 .vscode/
