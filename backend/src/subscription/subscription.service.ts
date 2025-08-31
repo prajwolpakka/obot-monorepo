@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto/subscription.dto';
 import { Subscription } from './entities/subscription.entity';
 
-interface SubscriptionPlan {
+export interface SubscriptionPlan {
   id: 'starter' | 'pro' | 'enterprise';
   name: string;
   price: number;

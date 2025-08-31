@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SubscriptionService } from './subscription.service';
+import { SubscriptionService, SubscriptionPlan } from './subscription.service';
 import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto/subscription.dto';
 
 @ApiTags('subscription')
@@ -14,7 +14,7 @@ export class SubscriptionController {
   @Get('plans')
   @ApiOperation({ summary: 'Get available subscription plans' })
   @ApiResponse({ status: 200, description: 'Plans retrieved successfully' })
-  getPlans() {
+  getPlans(): SubscriptionPlan[] {
     return this.subscriptionService.getPlans();
   }
 
