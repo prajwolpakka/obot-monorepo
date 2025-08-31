@@ -92,94 +92,45 @@ def check_qdrant_health() -> dict:
     return health_status
 
 def check_LLM_health() -> dict:
-    """
-    Check LLM health and return status information.
-    
-    Returns:
-        dict: Health status information including LLM provider status
-    """
-    logger.info("Starting LLM health check...")
-    
-    # Get LLM configuration from environment
-    llm_provider = os.getenv('LLM_PROVIDER', 'openrouter')
-    llm_host = os.getenv('OLLAMA_HOST', 'localhost')
-    llm_port = os.getenv('OLLAMA_PORT', '11434')
-    
+    """Check OpenRouter health by listing models (API key only)."""
+    logger.info("Starting OpenRouter health check…")
+
+    import requests
+
+    api_key = os.getenv('OPENROUTER_API_KEY')
     health_status = {
-        "llm_provider": llm_provider,
-        "llm_host": llm_host,
-        "llm_port": llm_port,
+        "llm_provider": "openrouter",
         "connection_status": "unknown",
         "models_available": [],
-        "overall_status": "unknown"
+        "overall_status": "unknown",
     }
-    
-    try:
-        # Check if LLM service is reachable
-        logger.info(f"Testing connection to LLM at {llm_host}:{llm_port}")
-        
-        if llm_provider.lower() == 'ollama':
-            # Test Ollama connection
-            import requests
-            try:
-                response = requests.get(f"http://{llm_host}:{llm_port}/api/tags", timeout=10)
-                if response.status_code == 200:
-                    health_status["connection_status"] = "connected"
-                    logger.info("Ollama connection successful")
-                    
-                    # Get available models
-                    models_data = response.json()
-                    models = [model["name"] for model in models_data.get("models", [])]
-                    health_status["models_available"] = models
-                    logger.info(f"Found {len(models)} models: {models}")
-                else:
-                    health_status["connection_status"] = "failed"
-                    logger.error(f"Ollama connection failed with status {response.status_code}")
-            except Exception as e:
-                health_status["connection_status"] = "failed"
-                logger.error(f"Ollama connection failed: {str(e)}")
-        
-        elif llm_provider.lower() == 'gemini':
-            # Test Gemini connection (if API key is configured)
-            api_key = os.getenv('GOOGLE_API_KEY')
-            if api_key:
-                health_status["connection_status"] = "configured"
-                logger.info("Gemini API key configured")
-            else:
-                health_status["connection_status"] = "not_configured"
-                logger.warning("Gemini API key not configured")
 
-        elif llm_provider.lower() == 'openrouter':
-            import requests
-            api_key = os.getenv('OPENROUTER_API_KEY')
-            if not api_key:
-                health_status["connection_status"] = "not_configured"
-                logger.warning("OpenRouter API key not configured")
+    try:
+        if not api_key:
+            health_status["connection_status"] = "not_configured"
+            logger.warning("OpenRouter API key not configured")
+        else:
+            headers = {"Authorization": f"Bearer {api_key}"}
+            response = requests.get("https://openrouter.ai/api/v1/models", headers=headers, timeout=10)
+            if response.status_code == 200:
+                health_status["connection_status"] = "connected"
+                models_data = response.json()
+                models = [m.get("id") for m in models_data.get("data", [])]
+                health_status["models_available"] = models
+                logger.info(f"OpenRouter connection successful with {len(models)} models")
             else:
-                headers = {"Authorization": f"Bearer {api_key}"}
-                try:
-                    response = requests.get("https://openrouter.ai/api/v1/models", headers=headers, timeout=10)
-                    if response.status_code == 200:
-                        health_status["connection_status"] = "connected"
-                        models_data = response.json()
-                        models = [m.get("id") for m in models_data.get("data", [])]
-                        health_status["models_available"] = models
-                        logger.info(f"OpenRouter connection successful with {len(models)} models")
-                    else:
-                        health_status["connection_status"] = "failed"
-                        logger.error(f"OpenRouter connection failed with status {response.status_code}")
-                except Exception as e:
-                    health_status["connection_status"] = "failed"
-                    logger.error(f"OpenRouter connection failed: {str(e)}")
-        
+                health_status["connection_status"] = "failed"
+                logger.error(f"OpenRouter connection failed with status {response.status_code}")
+
         # Determine overall status
-        if health_status["connection_status"] in ["connected", "configured"]:
-            health_status["overall_status"] = "healthy"
+        health_status["overall_status"] = (
+            "healthy" if health_status["connection_status"] in ["connected", "configured"] else "unhealthy"
+        )
+        if health_status["overall_status"] == "healthy":
             logger.info("LLM health check completed successfully")
         else:
-            health_status["overall_status"] = "unhealthy"
             logger.error("LLM health check failed")
-            
+
     except Exception as e:
         health_status["overall_status"] = "unhealthy"
         logger.error(f"LLM health check failed: {str(e)}")

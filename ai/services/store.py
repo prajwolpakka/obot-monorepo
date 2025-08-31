@@ -104,7 +104,9 @@ class StoreService:
         """
         try:
             result = self.client.retrieve(
-                collection_name=self.collection_name, ids=[document_id], with_vectors=False
+                collection_name=self.collection_name,
+                ids=[document_id],
+                with_vectors=False,
             )
             return result[0].payload if result else None
         except Exception as e:
@@ -174,8 +176,8 @@ class StoreService:
             ]
         )
 
-        results = client.search(
-            collection_name=QDRANT_COLLECTION_NAME,
+        results = self.client.search(
+            collection_name=self.collection_name,
             query_vector=vector,
             query_filter=filter_by_ids,
             limit=limit,

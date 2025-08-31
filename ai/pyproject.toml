@@ -34,8 +34,7 @@ langchain-core = "^0.1.8"  # Compatible version
 # Vector database
 qdrant-client = "1.8.0"  # Version known to work well with the above
 
-# Embeddings
-openai = "^1.40.0"
+# HTTP client and utilities (embeddings via OpenRouter use httpx already in std deps)
 
 # Database
 pymongo = "^4.13.2"

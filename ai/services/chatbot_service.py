@@ -103,7 +103,7 @@ Question: {question}
 Answer:"""
         return prompt
 
-    async def call_llm(self, question: str, context: str, provider: str = "gemini", stream: bool = False):
+    async def call_llm(self, question: str, context: str, provider: str = "openrouter", stream: bool = False):
         prompt = self.generate_prompt(question, context)
 
         logger.info(f"🤖 Sending to {provider}: '{question[:50]}{'...' if len(question) > 50 else ''}'")
