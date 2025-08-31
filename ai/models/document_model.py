@@ -14,7 +14,7 @@ class Document(BaseModel):
     content: Optional[bytes] = None 
 
 class Documents(BaseModel):
-    document : List[Document] = []
+    document: List[Document] = Field(default_factory=list)
 
 class LocalDocument(BaseModel):
     file_path: List[str] = Field(

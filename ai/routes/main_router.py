@@ -7,14 +7,12 @@ import os
 from routes.llm_router import router as llm_routes
 from routes.embed_router import router as embed_routes
 from routes.chatbot_router import router as chatbot_routes
-from routes.chatbot_router import router as chat_routes
 
 main_router = APIRouter()
 
 main_router.include_router(embed_routes, tags=["Embed"])
 main_router.include_router(chatbot_routes, tags=["Chatbot"])
 main_router.include_router(llm_routes, tags=["LLM"])
-main_router.include_router(chat_routes, tags=["Chat"])
 
 def check_qdrant_health() -> dict:
     """

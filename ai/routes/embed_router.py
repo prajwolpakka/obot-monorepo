@@ -29,18 +29,18 @@ async def embedd_local_file(request_data: dict):
         if not document_id:
             return format_error_response("document_id is required", status_code=400)
         
-        print("Start embedding local files...")
-        print("File Paths : \n", file_paths)
-        print("Document ID : \n", document_id)
+        logger.info("Start embedding local files…")
+        logger.info(f"File Paths: {file_paths}")
+        logger.info(f"Document ID: {document_id}")
         
         document_object = DocumentService()
         response = []
         
         for path in file_paths:
-            logger.info(f"Processing Local File : {path}")
+            logger.info(f"Processing Local File: {path}")
             # Always use the provided document_id
             file_id = document_id
-            logger.info(f"File ID : {file_id}")
+            logger.info(f"File ID: {file_id}")
             
             # Construct a synthetic Document object per file
             document = Document(

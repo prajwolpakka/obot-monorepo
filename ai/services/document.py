@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import os
 from models.document_model import Document
 from langchain_core.documents import Document as LangchainDocument
@@ -10,6 +10,7 @@ from services.embedding import EmbeddingService
 from services.store import StoreService
 from utils.logger import logger
 from pathlib import Path
+import hashlib
 
 
 class DocumentService:
@@ -92,18 +93,33 @@ class DocumentService:
             for i, chunk in enumerate(chunks):
                 try:
                     logger.info(f"Processing chunk {i+1}/{len(chunks)}")
-                    
-                    # Generate embeddings
+                    # Create stable chunk id and content hash
+                    chunk_id = f"{document.id}_chunk_{i}"
+                    content_hash = hashlib.sha256(chunk.page_content.encode('utf-8')).hexdigest()
+
+                    # Check cache in Qdrant via payload
+                    existing = self.store_service.get_document(chunk_id)
+                    if (
+                        existing
+                        and existing.get("content_hash") == content_hash
+                        and existing.get("embedding_model") == getattr(self.embedding_service, 'model_name', None)
+                    ):
+                        logger.info(f"Skip unchanged chunk {i+1}: cache hit")
+                        continue
+
+                    # Generate embeddings when needed
                     logger.info("Generating embeddings...")
                     embedding = self.embedding_service.embed_document(chunk)
-                    
+
                     # Store the chunk with document metadata
                     logger.info("Storing chunk in Qdrant...")
                     self.store_service.store_document(
                         document=chunk,
                         vector=embedding,
-                        document_id=f"{document.id}_chunk_{chunk_count}",
-                        **document_metadata
+                        document_id=chunk_id,
+                        content_hash=content_hash,
+                        embedding_model=getattr(self.embedding_service, 'model_name', None),
+                        **document_metadata,
                     )
                     chunk_count += 1
                     logger.info(f"[OK] Chunk {i+1} processed and stored successfully")
@@ -157,7 +173,7 @@ class DocumentService:
         }
 
     def local_process_document(
-        self, document: Document, split_size: int = 1000, split_overlap: int = 200
+        self, document: Document, split_size: int = None, split_overlap: int = None
     ) -> Dict[str, Any]:
         """
         Process a local document and store embeddings in Qdrant.
@@ -190,9 +206,11 @@ class DocumentService:
                 },
             )
 
+            # Default to global config if not provided
+            from config.constants import CHUNK_SIZE, CHUNK_OVERLAP
             splitter = RecursiveCharacterTextSplitter(
-                chunk_size=split_size,
-                chunk_overlap=split_overlap,
+                chunk_size=split_size or CHUNK_SIZE,
+                chunk_overlap=split_overlap or CHUNK_OVERLAP,
                 length_function=len,
             )
             chunks = splitter.split_documents([lang_doc])
@@ -205,15 +223,30 @@ class DocumentService:
             for i, chunk in enumerate(chunks):
                 try:
                     logger.info(f"[EMBED] Embedding chunk {i + 1}/{len(chunks)}")
+                    # Stable chunk id and content hash
+                    chunk_id = f"{document.id}_chunk_{i}"
+                    content_hash = hashlib.sha256(chunk.page_content.encode('utf-8')).hexdigest()
+
+                    existing = self.store_service.get_document(chunk_id)
+                    if (
+                        existing
+                        and existing.get("content_hash") == content_hash
+                        and existing.get("embedding_model") == getattr(self.embedding_service, 'model_name', None)
+                    ):
+                        logger.info(f"[SKIP] Unchanged chunk {i+1} (cache hit)")
+                        continue
+
                     embedding = self.embedding_service.embed_document(chunk)
                     metadata = chunk.metadata
                     # Store the chunk with document metadata
                     try:
-                        logger.info(f"Storing chunk {chunk_count + 1} with ID {document.id}_chunk_{chunk_count}")
+                        logger.info(f"Storing chunk {chunk_count + 1} with ID {chunk_id}")
                         self.store_service.store_document(
                             document=chunk,
                             vector=embedding,
-                            document_id=f"{document.id}",
+                            document_id=chunk_id,
+                            content_hash=content_hash,
+                            embedding_model=getattr(self.embedding_service, 'model_name', None),
                             **metadata,
                         )
                         chunk_count += 1

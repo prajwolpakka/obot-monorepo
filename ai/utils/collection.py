@@ -1,4 +1,4 @@
-from kms_ai.utils.qdrand_db import client
+from utils.qdrant_db import client
 from qdrant_client.models import VectorParams, Distance
 
 

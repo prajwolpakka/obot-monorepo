@@ -48,7 +48,7 @@ class GeminiProvider(LLMProvider):
                 stream = self.model.generate_content(prompt, stream=True)
                 for chunk in stream:
                     if chunk and chunk.text:
-                        print(f"Yielding Gemini chunk inside: {chunk.text}")
+                        logger.debug(f"Yielding Gemini chunk inside: {chunk.text}")
                         yield chunk.text
 
             # Run the synchronous generator in a separate thread

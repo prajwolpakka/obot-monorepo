@@ -35,7 +35,7 @@ langchain-core = "^0.1.8"  # Compatible version
 qdrant-client = "1.8.0"  # Version known to work well with the above
 
 # Embeddings
-sentence-transformers = "^4.1.0"
+openai = "^1.40.0"
 
 # Database
 pymongo = "^4.13.2"

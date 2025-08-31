@@ -3,14 +3,15 @@ import time
 import socket
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance
-from config.constants import QDRANT_COLLECTION_NAME
+from config.constants import QDRANT_COLLECTION_NAME, EMBEDDING_DIM
+from utils.logger import logger
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DEFAULT_QDRANT_HOST = os.environ.get('QDRANT_HOST', 'localhost')
 DEFAULT_QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
-DEFAULT_EMBEDDING_DIM = 768
+DEFAULT_EMBEDDING_DIM = EMBEDDING_DIM
 
 def wait_for_qdrant(host: str = DEFAULT_QDRANT_HOST, port: int = DEFAULT_QDRANT_PORT,
                     retries: int = 10, delay: int = 2) -> None:
@@ -23,10 +24,10 @@ def wait_for_qdrant(host: str = DEFAULT_QDRANT_HOST, port: int = DEFAULT_QDRANT_
     for attempt in range(1, retries + 1):
         try:
             with socket.create_connection((host, port), timeout=2):
-                print(f"[OK] Qdrant is reachable at {host}:{port}")
+                logger.info(f"[OK] Qdrant is reachable at {host}:{port}")
                 return
         except Exception:
-            print(f"[WAIT] Waiting for Qdrant ({host}:{port})... attempt {attempt}/{retries}")
+            logger.info(f"[WAIT] Waiting for Qdrant ({host}:{port})... attempt {attempt}/{retries}")
             time.sleep(delay)
     raise ConnectionError(f"[ERROR] Could not connect to Qdrant at {host}:{port}")
 
@@ -44,7 +45,29 @@ def ensure_collection_exists(client: QdrantClient, collection_name: str,
     """
     existing_collections = {col.name for col in client.get_collections().collections}
     if collection_name in existing_collections:
-        print(f"[INFO] Collection '{collection_name}' already exists.")
+        # Try to validate vector dimension; if not accessible, just warn
+        try:
+            info = client.get_collection(collection_name)
+            # Support both single-vector and multi-vector configs
+            size = None
+            vectors_cfg = getattr(getattr(info, 'config', None), 'params', None)
+            vectors_cfg = getattr(vectors_cfg, 'vectors', None)
+            if hasattr(vectors_cfg, 'size'):
+                size = vectors_cfg.size
+            elif isinstance(vectors_cfg, dict):
+                # Multi-vector: take the first entry's size
+                first_key = next(iter(vectors_cfg))
+                size = vectors_cfg[first_key].size
+            if size is not None and size != embedding_dim:
+                logger.warning(
+                    f"Collection '{collection_name}' vector size={size} != expected {embedding_dim}. Consider a new collection."
+                )
+            else:
+                logger.info(
+                    f"Collection '{collection_name}' already exists with matching or unknown size."
+                )
+        except Exception:
+            logger.info(f"Collection '{collection_name}' already exists.")
         return
 
     client.create_collection(
@@ -54,7 +77,7 @@ def ensure_collection_exists(client: QdrantClient, collection_name: str,
             distance=Distance.COSINE
         )
     )
-    print(f"Collection '{collection_name}' created.")
+    logger.info(f"Collection '{collection_name}' created.")
 
 
 def initialize_qdrant(host: str = DEFAULT_QDRANT_HOST,
@@ -73,4 +96,4 @@ def initialize_qdrant(host: str = DEFAULT_QDRANT_HOST,
     return client
 
 
-client = initialize_qdrant(collection_name=QDRANT_COLLECTION_NAME)
+client = initialize_qdrant(collection_name=QDRANT_COLLECTION_NAME, embedding_dim=EMBEDDING_DIM)

@@ -23,11 +23,11 @@ class StoreService:
         self.client = client
 
     def store_document(
-        self, 
-        document: BaseModel, 
+        self,
+        document: Any,
         vector: List[float],
         document_id: Optional[str],
-        **additional_metadata
+        **additional_metadata,
     ) -> bool:
         """
         Store a document with its vector embedding in Qdrant.
@@ -41,13 +41,28 @@ class StoreService:
         Returns:
             bool: True if storage was successful
         """
-        print(f"Storing document {getattr(document, 'id', 'unknown')} in collection '{self.collection_name}'")
+        logger.info(
+            f"Storing point id={document_id or 'auto'} for doc={getattr(document, 'id', additional_metadata.get('id', 'unknown'))}"
+        )
         try:
-            # Convert document to dict
+            # Convert various document types into a base payload
+            base_payload: Dict[str, Any] = {}
             if isinstance(document, BaseModel):
-                base_payload = document.dict()
+                # Pydantic v2
+                base_payload = document.model_dump() if hasattr(document, 'model_dump') else document.dict()
+            elif hasattr(document, 'page_content') and hasattr(document, 'metadata'):
+                # LangChain Document-like
+                base_payload = {
+                    "page_content": getattr(document, 'page_content', None),
+                    "metadata": getattr(document, 'metadata', {}) or {},
+                }
+            elif isinstance(document, dict):
+                base_payload = document
             else:
-                base_payload = dict(document)
+                try:
+                    base_payload = dict(document)
+                except Exception:
+                    base_payload = {k: v for k, v in vars(document).items()}
 
             # Merge and flatten payload
             metadata = base_payload.pop("metadata", {})
@@ -57,26 +72,19 @@ class StoreService:
                 **base_payload,
                 **metadata,
                 **additional_metadata,
-                "stored_at": datetime.utcnow().isoformat()
+                "stored_at": datetime.utcnow().isoformat(),
             }
-            print(f"Payload before cleaning: {payload}")
-            print(f"Document ID : ", document_id)
+            logger.debug(f"Payload keys: {list(payload.keys())}")
 
             # Create point structure for Qdrant
             point = PointStruct(
-                id=uuid.uuid4().hex,
+                id=document_id or uuid.uuid4().hex,
                 vector=vector,
-                payload={
-                    **payload,
-                    "stored_at": datetime.utcnow().isoformat()
-                }
+                payload={**payload, "stored_at": datetime.utcnow().isoformat()},
             )
             
             # Upsert the point
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=[point]
-            )
+            self.client.upsert(collection_name=self.collection_name, points=[point])
             
             return True
             
@@ -96,9 +104,7 @@ class StoreService:
         """
         try:
             result = self.client.retrieve(
-                collection_name=self.collection_name,
-                ids=[document_id],
-                with_vectors=False
+                collection_name=self.collection_name, ids=[document_id], with_vectors=False
             )
             return result[0].payload if result else None
         except Exception as e:
@@ -172,6 +178,6 @@ class StoreService:
             collection_name=QDRANT_COLLECTION_NAME,
             query_vector=vector,
             query_filter=filter_by_ids,
-            limit=limit
+            limit=limit,
         )
         return results
