@@ -57,11 +57,6 @@ const CreateChatbotPage: React.FC = () => {
   const onSubmit = async (data: ICreateChatbotSchema) => {
     create(data, {
       onSuccess: (response) => {
-        toast({
-          title: "Chatbot created successfully!",
-        });
-
-        // Extract chatbot ID from response and show integration modal
         const chatbotId = response?.id || "your-chatbot-id";
         setCreatedChatbotId(chatbotId);
         setShowIntegrationModal(true);
@@ -217,7 +212,7 @@ const CreateChatbotPage: React.FC = () => {
           </div>
 
           {!canCreate && (
-            <p className="text-sm text-red-500 px-4">
+            <p className="text-sm text-red-500 px-4 py-2 border-t">
               You have reached the limit of {currentPlan?.maxChatbots} chatbots for your plan.
             </p>
           )}
