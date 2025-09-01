@@ -24,12 +24,14 @@ class EmbeddingService:
             "Content-Type": "application/json",
         }
         # Optional but recommended by OpenRouter
-        site_url = os.environ.get("OPENROUTER_SITE_URL")
-        app_name = os.environ.get("OPENROUTER_APP_NAME")
+        # Support both naming conventions found in .env files
+        site_url = os.environ.get("OPENROUTER_SITE_URL") or os.environ.get("OPENROUTER_REFERRER")
+        app_name = os.environ.get("OPENROUTER_APP_NAME") or os.environ.get("OPENROUTER_TITLE")
         if site_url:
             headers["HTTP-Referer"] = site_url
         if app_name:
             headers["X-Title"] = app_name
+        headers["Accept"] = "application/json"
         return headers
 
     def embed_document(self, chunkdoc: LangchainDocument) -> List[float]:
@@ -43,7 +45,12 @@ class EmbeddingService:
                 json={"model": self.model_name, "input": text},
             )
             resp.raise_for_status()
-            data = resp.json()
+            # Some proxies may return non-JSON with 2xx. Guard parsing.
+            try:
+                data = resp.json()
+            except Exception:
+                logger.error(f"Unexpected embeddings response body: {resp.text[:300]}")
+                raise
             vec = data["data"][0]["embedding"]
             logger.debug(f"Generated embedding with {len(vec)} dimensions")
             return vec
@@ -62,7 +69,11 @@ class EmbeddingService:
                 json={"model": self.model_name, "input": contents},
             )
             resp.raise_for_status()
-            data = resp.json()
+            try:
+                data = resp.json()
+            except Exception:
+                logger.error(f"Unexpected batch embeddings response body: {resp.text[:300]}")
+                raise
             vectors = [item["embedding"] for item in data["data"]]
             logger.info(f"Generated embeddings for {len(docs)} documents successfully")
             return vectors

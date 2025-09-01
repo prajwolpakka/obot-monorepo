@@ -16,7 +16,7 @@ const MainLayout: React.FC<Props> = ({ padding = 4 }) => {
         <div className="relative h-full w-full flex flex-col">
           <AppHeader />
 
-          <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f4f4f5]">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden bg-muted">
             <Outlet />
           </div>
         </div>

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue, MatchAny
 from pydantic import BaseModel
 import logging
@@ -26,7 +26,7 @@ class StoreService:
         self,
         document: Any,
         vector: List[float],
-        document_id: Optional[str],
+        document_id: Optional[Union[str, int, uuid.UUID]],
         **additional_metadata,
     ) -> bool:
         """
@@ -77,7 +77,7 @@ class StoreService:
             logger.debug(f"Payload keys: {list(payload.keys())}")
 
             # Create point structure for Qdrant
-            final_id = document_id or uuid.uuid4().hex
+            final_id = self._normalize_point_id(document_id) if document_id is not None else uuid.uuid4()
             logger.info(f"Creating Qdrant point with ID: {final_id}")
             point = PointStruct(
                 id=final_id,
@@ -94,7 +94,7 @@ class StoreService:
             logger.error(f"Error storing document {getattr(document, 'id', 'unknown')}: {str(e)}")
             raise
     
-    def get_document(self, document_id: str) -> Optional[Dict[str, Any]]:
+    def get_document(self, document_id: Union[str, int, uuid.UUID]) -> Optional[Dict[str, Any]]:
         """
         Retrieve a document by its ID.
         
@@ -105,9 +105,10 @@ class StoreService:
             Optional[Dict]: The document payload if found, None otherwise
         """
         try:
+            norm_id = self._normalize_point_id(document_id)
             result = self.client.retrieve(
                 collection_name=self.collection_name,
-                ids=[document_id],
+                ids=[norm_id],
                 with_vectors=False,
             )
             return result[0].payload if result else None
@@ -185,3 +186,24 @@ class StoreService:
             limit=limit,
         )
         return results
+
+    # --- Internal helpers ---
+    def _normalize_point_id(self, point_id: Union[str, int, uuid.UUID]) -> uuid.UUID:
+        """Always return a UUID for Qdrant point IDs.
+
+        - If already a UUID, return it.
+        - If string parses as UUID, return parsed value.
+        - For any other input (including ints/strings), derive deterministic UUIDv5.
+        """
+        if isinstance(point_id, uuid.UUID):
+            return point_id
+        if isinstance(point_id, str):
+            try:
+                return uuid.UUID(point_id)
+            except Exception:
+                return uuid.uuid5(uuid.NAMESPACE_URL, point_id)
+        # For non-string types (e.g., int), derive UUID from string form
+        try:
+            return uuid.uuid5(uuid.NAMESPACE_URL, str(point_id))
+        except Exception:
+            return uuid.uuid4()
