@@ -1,12 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/common/components/ui/card";
 import { Label } from "@/common/components/ui/label";
 import { Switch } from "@/common/components/ui/switch";
-import { Bell } from "lucide-react";
-import { usePreferences, useUpdatePreferences } from "../services/hooks";
-import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Bell } from "lucide-react";
 import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
+import { usePreferences, useUpdatePreferences } from "../services/hooks";
 
 const preferencesSchema = z.object({
   emailNotifications: z.boolean().optional(),
@@ -37,20 +37,17 @@ const PreferencesPage = () => {
     }
   }, [preferences, form]);
 
-  const handleUpdate = async <K extends keyof PreferencesFormData>(
-    field: K,
-    value: PreferencesFormData[K]
-  ) => {
+  const handleUpdate = async <K extends keyof PreferencesFormData>(field: K, value: boolean) => {
     const currentValues = form.getValues();
     const updatedData = { ...currentValues, [field]: value };
 
-    form.setValue(field, value);
+    // form.setValue(field, value);
 
     try {
       await updatePreferencesMutation.mutateAsync(updatedData);
     } catch {
       // Revert on error
-      form.setValue(field, currentValues[field]);
+      // form.setValue(field, currentValues[field] as boolean);
     }
   };
 
@@ -87,10 +84,7 @@ const PreferencesPage = () => {
               name="emailNotifications"
               control={form.control}
               render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={(value) => handleUpdate('emailNotifications', value)}
-                />
+                <Switch checked={field.value} onCheckedChange={(value) => handleUpdate("emailNotifications", value)} />
               )}
             />
           </div>
@@ -105,25 +99,22 @@ const PreferencesPage = () => {
               name="pushNotifications"
               control={form.control}
               render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={(value) => handleUpdate('pushNotifications', value)}
-                />
+                <Switch checked={field.value} onCheckedChange={(value) => handleUpdate("pushNotifications", value)} />
               )}
             />
           </div>
 
           {/* Browser Permissions Note */}
-          {form.watch('pushNotifications') && (
+          {form.watch("pushNotifications") && (
             <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Note:</strong> To receive push notifications, you'll need to allow notifications in your browser when prompted.
+                <strong>Note:</strong> To receive push notifications, you'll need to allow notifications in your browser
+                when prompted.
               </p>
             </div>
           )}
         </CardContent>
       </Card>
-
     </div>
   );
 };

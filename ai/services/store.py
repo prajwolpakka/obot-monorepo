@@ -77,12 +77,14 @@ class StoreService:
             logger.debug(f"Payload keys: {list(payload.keys())}")
 
             # Create point structure for Qdrant
+            final_id = document_id or uuid.uuid4().hex
+            logger.info(f"Creating Qdrant point with ID: {final_id}")
             point = PointStruct(
-                id=document_id or uuid.uuid4().hex,
+                id=final_id,
                 vector=vector,
                 payload={**payload, "stored_at": datetime.utcnow().isoformat()},
             )
-            
+
             # Upsert the point
             self.client.upsert(collection_name=self.collection_name, points=[point])
             

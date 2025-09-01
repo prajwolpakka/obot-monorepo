@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { subscriptionApi } from "./api";
 import { useAppDispatch } from "@/common/state/hooks";
@@ -8,14 +9,19 @@ const PLANS_KEY = "subscription-plans";
 
 export const useSubscription = () => {
   const dispatch = useAppDispatch();
-  return useQuery({
+  const query = useQuery({
     queryKey: [SUBSCRIPTION_KEY],
     queryFn: subscriptionApi.get,
     retry: false,
-    onSuccess: (data) => {
-      dispatch(updateUserSubscription(data));
-    },
   });
+
+  useEffect(() => {
+    if (query.data) {
+      dispatch(updateUserSubscription(query.data));
+    }
+  }, [query.data, dispatch]);
+
+  return query;
 };
 
 export const useSubscriptionPlans = () => {

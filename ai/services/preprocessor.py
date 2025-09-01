@@ -3,6 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document as LangchainDocument
 from models.document_model import Document as AppDocument
 import logging
+import uuid
 from config.constants import CHUNK_SIZE, CHUNK_OVERLAP
 from utils.logger import logger
 
@@ -65,24 +66,26 @@ class DocumentProcessor:
             raise
     
     def prepare_chunks_for_storage(
-        self, 
-        chunks: List[LangchainDocument], 
+        self,
+        chunks: List[LangchainDocument],
         original_doc: AppDocument
     ) -> List[Dict[str, Any]]:
         """
         Prepare document chunks for storage.
-        
+
         Args:
             chunks: List of LangChain document chunks
             original_doc: Original application document
-            
+
         Returns:
             List of dictionaries containing chunk data and metadata
         """
         prepared_chunks = []
         for idx, chunk in enumerate(chunks):
+            chunk_id = str(uuid.uuid4())
+            logger.info(f"Generated valid UUID chunk ID: {chunk_id} for original doc {original_doc.id}, chunk {idx}")
             prepared_chunks.append({
-                'id': f"{original_doc.id}_{idx}",
+                'id': chunk_id,
                 'name': f"{original_doc.name}_chunk_{idx}",
                 'content': chunk.page_content,
                 'metadata': {
