@@ -12,6 +12,7 @@ load_dotenv()
 DEFAULT_QDRANT_HOST = os.environ.get('QDRANT_HOST', 'localhost')
 DEFAULT_QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
 DEFAULT_EMBEDDING_DIM = EMBEDDING_DIM
+AUTO_RECREATE = os.environ.get("QDRANT_AUTO_RECREATE_ON_DIM_MISMATCH", "true").lower() in {"1","true","yes","y"}
 
 def wait_for_qdrant(host: str = DEFAULT_QDRANT_HOST, port: int = DEFAULT_QDRANT_PORT,
                     retries: int = 10, delay: int = 2) -> None:
@@ -60,9 +61,23 @@ def ensure_collection_exists(client: QdrantClient, collection_name: str,
                 first_key = next(iter(vectors_cfg))
                 size = vectors_cfg[first_key].size
             if size is not None and size != embedding_dim:
-                logger.warning(
-                    f"Collection '{collection_name}' vector size={size} != expected {embedding_dim}. Consider a new collection."
+                msg = (
+                    f"Collection '{collection_name}' vector size={size} != expected {embedding_dim}."
                 )
+                if AUTO_RECREATE:
+                    logger.warning(msg + " Recreating collection to match expected dimension.")
+                    try:
+                        client.delete_collection(collection_name)
+                        client.create_collection(
+                            collection_name=collection_name,
+                            vectors_config=VectorParams(size=embedding_dim, distance=Distance.COSINE),
+                        )
+                        logger.info(f"Collection '{collection_name}' recreated with dim={embedding_dim}.")
+                    except Exception as e:
+                        logger.error(f"Failed to recreate collection '{collection_name}': {e}")
+                        raise
+                else:
+                    logger.warning(msg + " Consider setting QDRANT_AUTO_RECREATE_ON_DIM_MISMATCH=true to auto-fix.")
             else:
                 logger.info(
                     f"Collection '{collection_name}' already exists with matching or unknown size."
