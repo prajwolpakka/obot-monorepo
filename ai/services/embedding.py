@@ -4,52 +4,46 @@ from typing import List
 import httpx
 from langchain_core.documents import Document as LangchainDocument
 from utils.logger import logger
-from config.constants import EMBEDDINGS_MODEL, OPENROUTER_BASE_URL
+from config.constants import EMBEDDINGS_MODEL, VOYAGE_BASE_URL
 
 
 class EmbeddingService:
     def __init__(self):
-        """Initialize the embedding service with OpenRouter embeddings API."""
-        # Make sure .env is loaded in case this module is imported before others
+        """Initialize the embedding service with Voyage AI embeddings API."""
+        # Ensure .env is loaded
         load_dotenv()
-        api_key = os.environ.get("OPENROUTER_API_KEY")
+        api_key = os.environ.get("VOYAGE_API_KEY")
         if not api_key:
-            raise RuntimeError("OPENROUTER_API_KEY environment variable is not set")
+            raise RuntimeError("VOYAGE_API_KEY environment variable is not set")
         self.api_key = api_key
-        self.base_url = OPENROUTER_BASE_URL.rstrip("/")
+        self.base_url = VOYAGE_BASE_URL.rstrip("/")
         self.model_name = EMBEDDINGS_MODEL
-        # Disable redirects so we can detect if the request is being redirected to HTML pages
+        # Disable redirects so we can detect unexpected HTML responses
         self.client = httpx.Client(timeout=30, follow_redirects=False)
-        logger.info(f"EmbeddingService initialized with OpenRouter model: {self.model_name}")
+        logger.info(f"EmbeddingService initialized with Voyage model: {self.model_name}")
 
     def _headers(self) -> dict:
-        headers = {
+        return {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": os.environ.get("USER_AGENT", "obot-ai/1.0 (+httpx)"),
         }
-        # Optional but recommended by OpenRouter
-        # Support both naming conventions found in .env files
-        site_url = os.environ.get("OPENROUTER_SITE_URL") or os.environ.get("OPENROUTER_REFERRER")
-        app_name = os.environ.get("OPENROUTER_APP_NAME") or os.environ.get("OPENROUTER_TITLE")
-        if site_url:
-            headers["HTTP-Referer"] = site_url
-            # Some providers expect Origin in addition to Referer for CORS/CDN rules
-            headers["Origin"] = site_url
-        if app_name:
-            headers["X-Title"] = app_name
-        headers["Accept"] = "application/json"
-        headers["User-Agent"] = os.environ.get("USER_AGENT", "obot-ai/1.0 (+httpx)")
-        return headers
 
     def embed_document(self, chunkdoc: LangchainDocument) -> List[float]:
-        """Generate an embedding for a single LangChain document via OpenRouter."""
+        """Generate an embedding for a single LangChain document via Voyage AI."""
         try:
             text = chunkdoc.page_content
             logger.debug(f"Generating embedding for document with {len(text)} characters")
             resp = self.client.post(
                 f"{self.base_url}/embeddings",
                 headers=self._headers(),
-                json={"model": self.model_name, "input": text},
+                json={
+                    "model": self.model_name,
+                    "input": text,
+                    # Optional hints supported by Voyage
+                    "input_type": "document",
+                },
             )
             # If redirected, treat as error (often indicates auth/headers issue)
             if 300 <= resp.status_code < 400:
@@ -57,7 +51,7 @@ class EmbeddingService:
                 logger.error(f"Embeddings request redirected to: {location}")
                 resp.raise_for_status()
             resp.raise_for_status()
-            # Some proxies may return non-JSON with 2xx. Guard parsing and log details.
+            # Guard: some proxies may return non-JSON with 2xx. Log details.
             ctype = resp.headers.get("content-type", "")
             if "application/json" not in ctype.lower():
                 logger.error(
@@ -73,14 +67,18 @@ class EmbeddingService:
             raise e
 
     def embed_documents(self, docs: List[LangchainDocument]) -> List[List[float]]:
-        """Generate embeddings for multiple LangChain documents via OpenRouter."""
+        """Generate embeddings for multiple LangChain documents via Voyage AI."""
         try:
             contents = [doc.page_content for doc in docs]
             logger.info(f"Generating embeddings for {len(docs)} documents")
             resp = self.client.post(
                 f"{self.base_url}/embeddings",
                 headers=self._headers(),
-                json={"model": self.model_name, "input": contents},
+                json={
+                    "model": self.model_name,
+                    "input": contents,
+                    "input_type": "document",
+                },
             )
             if 300 <= resp.status_code < 400:
                 location = resp.headers.get("location", "<none>")
