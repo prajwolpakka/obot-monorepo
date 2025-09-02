@@ -70,7 +70,7 @@ const IntegrationModal: React.FC<IntegrationModalProps> = ({ isOpen, onClose, ch
               </div>
               <div className="flex-1 min-h-0">
                 <div className="h-full rounded-lg overflow-hidden border">
-                  <pre className="bg-gray-50 p-4 text-sm h-full overflow-auto">
+                  <pre className="bg-muted text-foreground p-4 text-sm h-full overflow-auto">
                     <code className="whitespace-pre">{htmlScript(chatbotId)}</code>
                   </pre>
                 </div>
@@ -93,7 +93,7 @@ const IntegrationModal: React.FC<IntegrationModalProps> = ({ isOpen, onClose, ch
               </div>
               <div className="flex-1 min-h-0">
                 <div className="h-full rounded-lg overflow-hidden border">
-                  <pre className="bg-gray-50 p-4 text-sm h-full overflow-auto">
+                  <pre className="bg-muted text-foreground p-4 text-sm h-full overflow-auto">
                     <code className="whitespace-pre">{reactIntegration(chatbotId)}</code>
                   </pre>
                 </div>
@@ -116,7 +116,7 @@ const IntegrationModal: React.FC<IntegrationModalProps> = ({ isOpen, onClose, ch
               </div>
               <div className="flex-1 min-h-0">
                 <div className="h-full rounded-lg overflow-hidden border">
-                  <pre className="bg-gray-50 p-4 text-sm h-full overflow-auto">
+                  <pre className="bg-muted text-foreground p-4 text-sm h-full overflow-auto">
                     <code className="whitespace-pre">{nextjsIntegration(chatbotId)}</code>
                   </pre>
                 </div>
@@ -135,7 +135,7 @@ const IntegrationModal: React.FC<IntegrationModalProps> = ({ isOpen, onClose, ch
               </div>
               <div className="flex-1 min-h-0">
                 <div className="h-full rounded-lg overflow-hidden border">
-                  <pre className="bg-gray-50 p-4 text-sm h-full overflow-auto">
+                  <pre className="bg-muted text-foreground p-4 text-sm h-full overflow-auto">
                     <code className="whitespace-pre">{vueIntegration(chatbotId)}</code>
                   </pre>
                 </div>
@@ -145,8 +145,8 @@ const IntegrationModal: React.FC<IntegrationModalProps> = ({ isOpen, onClose, ch
         </Tabs>
 
         <div className="flex justify-between items-center pt-4 border-t flex-shrink-0">
-          <p className="text-sm text-gray-600">
-            Chatbot ID: <code className="bg-gray-100 px-2 py-1 rounded">{chatbotId}</code>
+          <p className="text-sm text-muted-foreground">
+            Chatbot ID: <code className="bg-muted px-2 py-1 rounded">{chatbotId}</code>
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>

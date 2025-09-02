@@ -69,7 +69,8 @@
   }
 
   .dark {
-    --background: 54 54% 9%;
+    /* Use neutral dark gray background instead of olive */
+    --background: 240 10% 3.9%;
     --foreground: 0 0% 95%;
 
     --card: 240 10% 3.9%;
@@ -95,7 +96,8 @@
 
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 142.4 71.8% 29.2%;
+    /* Match focus ring to primary (blue) for consistency */
+    --ring: 217.2 91.2% 59.8%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;

@@ -1,5 +1,6 @@
 import { debounce } from "lodash";
 import { Search } from "lucide-react";
+import { Input } from "@/common/components/ui/input";
 import { useCallback, useEffect, useState } from "react";
 
 interface Props {
@@ -28,14 +29,14 @@ const TableSearch = ({ onSearch, debounceDelay = 500 }: Props) => {
   }, [debouncedSearch]);
 
   return (
-    <div className="flex items-center w-full max-w-[300px] rounded-lg border bg-background text-foreground px-3">
-      <Search className="h-5 w-5 text-muted-foreground" />
-      <input
-        type="text"
-        placeholder={"Search"}
-        className="flex-1 border-0 bg-transparent py-2 pl-2 text-sm focus:outline-none focus:ring-0"
+    <div className="relative w-full max-w-[300px]">
+      <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        aria-label="Search"
+        placeholder="Search"
         value={query}
         onChange={handleChange}
+        className="pl-9 h-9"
       />
     </div>
   );

@@ -38,7 +38,7 @@ const AppHeader: React.FC = () => {
   const toggleSidebar = () => setOpen(!open);
 
   return (
-    <div className="border-b flex items-center justify-between px-4 py-[6px] bg-background z-10">
+    <div className="border-b border-border bg-background supports-[backdrop-filter]:bg-background/80 backdrop-blur flex items-center justify-between px-4 py-[6px] z-10">
       <div className="flex items-center">
         <Button
           variant="ghost"

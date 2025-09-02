@@ -140,7 +140,7 @@ export function DataTable<T>({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="flex items-center gap-2 px-3 py-2 min-w-32 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg"
+              className="flex items-center gap-2 px-3 py-2 min-w-32 bg-background border border-border rounded-xl shadow-lg"
             >
               {bulkAction(
                 selectedRows.map((row) => row.original),
