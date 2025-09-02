@@ -15,7 +15,8 @@ import { WsJwtGuard } from '../../auth/guards/ws-jwt.guard';
 @WebSocketGateway({
   namespace: 'embedding-status',
   cors: {
-    origin: '*',
+    origin: true, // reflect request origin
+    credentials: true,
   },
 })
 export class EmbeddingStatusGateway implements OnGatewayConnection, OnGatewayDisconnect {

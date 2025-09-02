@@ -13,7 +13,7 @@ import { WebSocketAuthService } from '../auth/websocket-auth.service';
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true, // reflect request origin
     credentials: true,
   },
   namespace: '/notifications',

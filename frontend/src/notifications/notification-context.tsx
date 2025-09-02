@@ -34,6 +34,8 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
 
     const newSocket = io(`${import.meta.env.VITE_API_URL || "http://localhost:4001"}/notifications`, {
       autoConnect: true,
+      withCredentials: true,
+      transports: ["websocket", "polling"],
     });
 
     setSocket(newSocket);

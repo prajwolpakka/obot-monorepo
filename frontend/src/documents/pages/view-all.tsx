@@ -91,7 +91,8 @@ const ViewAllDocumentsPage = () => {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const documentId = row.getValue("id") as string;
+          // Use the original row data for fields that are not defined as columns
+          const documentId = (row.original as Document).id;
           const realtimeStatus = documentStatuses[documentId];
           const status = realtimeStatus || row.getValue("status");
           return <EmbeddingStatusIndicator status={status} />;

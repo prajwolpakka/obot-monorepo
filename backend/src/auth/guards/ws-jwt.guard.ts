@@ -10,7 +10,10 @@ export class WsJwtGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const client: Socket = context.switchToWs().getClient<Socket>();
-      const token = this.extractTokenFromClient(client);
+      // Only accept auth token from cookies
+      const cookieHeader = client.handshake.headers.cookie || '';
+      const cookies = this.parseCookies(cookieHeader);
+      const token = cookies['auth_token'];
       
       if (!token) {
         throw new WsException('Unauthorized');
@@ -25,13 +28,15 @@ export class WsJwtGuard implements CanActivate {
     }
   }
 
-  private extractTokenFromClient(client: Socket): string | undefined {
-    const token = client.handshake.auth.token || client.handshake.headers.authorization;
-    
-    if (token && token.startsWith('Bearer ')) {
-      return token.substring(7);
-    }
-    
-    return token;
+  private parseCookies(cookieString: string): Record<string, string> {
+    const cookies: Record<string, string> = {};
+    if (!cookieString) return cookies;
+    cookieString.split(';').forEach((cookie) => {
+      const parts = cookie.trim().split('=');
+      if (parts.length === 2) {
+        cookies[parts[0]] = decodeURIComponent(parts[1]);
+      }
+    });
+    return cookies;
   }
 }

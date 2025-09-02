@@ -12,19 +12,23 @@ export const useEmbeddingStatus = (documentId: string | null) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    if (!documentId) return;
-
-    // Connect to embedding status namespace
-    const newSocket = io(`${import.meta.env.VITE_API_URL}/embedding-status`);
+    // Always connect so callers can manage subscriptions dynamically
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:4001";
+    const newSocket = io(`${baseUrl}/embedding-status`, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
 
     newSocket.on("connect", () => {
       console.log("Connected to embedding status socket");
-      // Subscribe to document updates
-      newSocket.emit("subscribe-document", documentId);
+      if (documentId) {
+        // Subscribe to document updates when an id is provided
+        newSocket.emit("subscribe-document", documentId);
+      }
     });
 
     newSocket.on("status-update", (update: EmbeddingStatusUpdate) => {
-      if (update.documentId === documentId) {
+      if (!documentId || update.documentId === documentId) {
         setStatus(update.status);
       }
     });
@@ -36,10 +40,10 @@ export const useEmbeddingStatus = (documentId: string | null) => {
     setSocket(newSocket);
 
     return () => {
-      if (newSocket.connected) {
+      if (newSocket.connected && documentId) {
         newSocket.emit("unsubscribe-document", documentId);
-        newSocket.disconnect();
       }
+      newSocket.disconnect();
     };
   }, [documentId]);
 
