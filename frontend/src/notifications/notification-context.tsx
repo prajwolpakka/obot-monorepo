@@ -50,9 +50,29 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
     });
 
     // Listen for new notifications
-    newSocket.on("new-notification", (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev]);
+    newSocket.on("new-notification", (incoming: any) => {
+      // Normalize incoming payloads that may not be persisted records
+      const normalized: Notification = {
+        id: incoming.id || `tmp-${Date.now()}`,
+        title: incoming.title || "Notification",
+        message: incoming.message || "",
+        type: incoming.type || "info",
+        priority: incoming.priority || "medium",
+        isRead: !!incoming.isRead,
+        actionUrl: incoming.actionUrl,
+        actionLabel: incoming.actionLabel,
+        metadata: incoming.metadata || {},
+        userId: incoming.userId || user!.id,
+        createdAt: incoming.createdAt || new Date().toISOString(),
+        updatedAt: incoming.updatedAt || new Date().toISOString(),
+        timestamp: incoming.timestamp,
+        documentId: incoming.documentId,
+        success: incoming.success,
+      };
+      setNotifications((prev) => [normalized, ...prev]);
       setUnreadCount((prev) => prev + 1);
+      // Optionally refresh from API to replace temporary items with persisted records
+      refreshNotifications().catch(() => {});
     });
 
     // Listen for notification updates

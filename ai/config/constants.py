@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Ensure .env is loaded before reading any environment variables
+load_dotenv()
 
 # Embeddings configuration (OpenRouter)
 # Example models:

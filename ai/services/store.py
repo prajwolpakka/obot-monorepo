@@ -77,7 +77,8 @@ class StoreService:
             logger.debug(f"Payload keys: {list(payload.keys())}")
 
             # Create point structure for Qdrant
-            final_id = self._normalize_point_id(document_id) if document_id is not None else uuid.uuid4()
+            # Qdrant expects string or integer IDs; use string UUIDs for consistency
+            final_id = self._normalize_point_id(document_id) if document_id is not None else str(uuid.uuid4())
             logger.info(f"Creating Qdrant point with ID: {final_id}")
             point = PointStruct(
                 id=final_id,
@@ -188,22 +189,21 @@ class StoreService:
         return results
 
     # --- Internal helpers ---
-    def _normalize_point_id(self, point_id: Union[str, int, uuid.UUID]) -> uuid.UUID:
-        """Always return a UUID for Qdrant point IDs.
+    def _normalize_point_id(self, point_id: Union[str, int, uuid.UUID]) -> str:
+        """Return a string ID compatible with Qdrant.
 
-        - If already a UUID, return it.
-        - If string parses as UUID, return parsed value.
-        - For any other input (including ints/strings), derive deterministic UUIDv5.
+        - If UUID or UUID-like string, return its canonical string form.
+        - If other string/int, derive a deterministic UUIDv5 string.
         """
         if isinstance(point_id, uuid.UUID):
-            return point_id
+            return str(point_id)
         if isinstance(point_id, str):
             try:
-                return uuid.UUID(point_id)
+                return str(uuid.UUID(point_id))
             except Exception:
-                return uuid.uuid5(uuid.NAMESPACE_URL, point_id)
+                return str(uuid.uuid5(uuid.NAMESPACE_URL, point_id))
         # For non-string types (e.g., int), derive UUID from string form
         try:
-            return uuid.uuid5(uuid.NAMESPACE_URL, str(point_id))
+            return str(uuid.uuid5(uuid.NAMESPACE_URL, str(point_id)))
         except Exception:
-            return uuid.uuid4()
+            return str(uuid.uuid4())

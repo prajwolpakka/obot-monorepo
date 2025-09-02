@@ -43,6 +43,7 @@ def ensure_collection_exists(client: QdrantClient, collection_name: str,
         embedding_dim (int): Dimensionality of vectors
 
     """
+    logger.info(f"[Qdrant] Using collection '{collection_name}' with expected dim={embedding_dim}")
     existing_collections = {col.name for col in client.get_collections().collections}
     if collection_name in existing_collections:
         # Try to validate vector dimension; if not accessible, just warn

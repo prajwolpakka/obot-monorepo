@@ -58,6 +58,18 @@ export const NotificationItem = ({ notification, onClose }: NotificationItemProp
     }
   };
 
+  const getDisplayTime = () => {
+    const created = (notification as any).createdAt;
+    let d: Date | null = null;
+    if (created instanceof Date) {
+      d = created;
+    } else if (typeof created === "string" || typeof created === "number") {
+      const parsed = new Date(created as any);
+      if (!isNaN(parsed.getTime())) d = parsed;
+    }
+    return d ? formatDistanceToNow(d, { addSuffix: true }) : "just now";
+  };
+
   return (
     <div
       className={cn(
@@ -88,7 +100,7 @@ export const NotificationItem = ({ notification, onClose }: NotificationItemProp
             <p className="text-sm text-muted-foreground line-clamp-2">{notification.message}</p>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                {getDisplayTime()}
               </span>
               {notification.priority === "urgent" && (
                 <span className="text-xs font-medium text-red-600 dark:text-red-400">Urgent</span>

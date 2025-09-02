@@ -1,9 +1,12 @@
 import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from utils.logger import logger
 from routes.main_router import main_router
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+
+load_dotenv()
 
 app = FastAPI(
     title="Chatbot Server",
