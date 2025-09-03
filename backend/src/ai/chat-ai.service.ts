@@ -10,6 +10,7 @@ export class ChatAiService {
   private readonly orApiKey: string;
   private readonly orModel: string;
   private readonly orBaseUrl = "https://openrouter.ai/api/v1";
+  private readonly minScore: number;
 
   constructor(
     private readonly config: ConfigService,
@@ -18,6 +19,7 @@ export class ChatAiService {
   ) {
     this.orApiKey = this.config.get<string>("OPENROUTER_API_KEY", "");
     this.orModel = this.config.get<string>("OPENROUTER_MODEL", "openai/gpt-3.5-turbo");
+    this.minScore = parseFloat(String(this.config.get<string>("QDRANT_SCORE_THRESHOLD", "0.65")) || "0.65");
     if (!this.orApiKey) {
       this.logger.warn("OPENROUTER_API_KEY not set; chat inference will fail until configured.");
     }
@@ -46,14 +48,12 @@ export class ChatAiService {
     const hits = await this.qdrant.search(queryVector, {
       limit: 8,
       documentIdsFilter: chatRequest.documents,
-      scoreThreshold: undefined,
+      scoreThreshold: this.minScore,
     });
 
     if (!hits?.length) {
       this.logger.warn(
-        `❌ No chunks found from Qdrant for provided document IDs (${
-          (chatRequest.documents || []).map((d) => d.slice(0, 8)).join(", ") || "none"
-        }).`
+        `❌ No chunks found from Qdrant for provided document IDs (${(chatRequest.documents || []).map((d) => d.slice(0, 8)).join(", ") || "none"}) with score >= ${this.minScore}.`
       );
     } else {
       this.logger.log(`📄 Found ${hits.length} relevant chunks`);
