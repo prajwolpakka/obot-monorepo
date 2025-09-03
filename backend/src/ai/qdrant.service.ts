@@ -15,6 +15,7 @@ export class QdrantService implements OnModuleInit {
   private readonly collection: string;
   private readonly dim: number;
   private readonly distance: 'Cosine' | 'Euclid' | 'Dot' = 'Cosine';
+  private readonly autoRecreateOnDimMismatch: boolean;
   private initPromise?: Promise<void>;
 
   constructor(private readonly config: ConfigService) {
@@ -22,6 +23,8 @@ export class QdrantService implements OnModuleInit {
     this.port = parseInt(this.config.get<string>('QDRANT_PORT', '6333')!, 10);
     this.collection = this.config.get<string>('QDRANT_COLLECTION_NAME', 'obot_documents');
     this.dim = parseInt(this.config.get<string>('EMBEDDING_DIM', '1024')!, 10);
+    const autoFlag = (this.config.get<string>('QDRANT_AUTO_RECREATE', 'true') || '').toLowerCase();
+    this.autoRecreateOnDimMismatch = ['1', 'true', 'yes', 'y'].includes(autoFlag);
   }
 
   onModuleInit() {
@@ -75,8 +78,41 @@ export class QdrantService implements OnModuleInit {
       const text = await resp.text().catch(() => '');
       throw new Error(`Failed to get collection: ${resp.status} ${text?.slice(0, 200)}`);
     }
-    // Optionally validate dimension here; skipping destructive actions
-    this.logger.log(`Qdrant collection '${this.collection}' available.`);
+    // Validate vector dimension and optionally reconcile
+    const info = await resp.json().catch(() => undefined as any);
+    const actualDim =
+      info?.result?.config?.params?.vectors?.size ??
+      info?.result?.config?.params?.vectors?.params?.size ??
+      info?.result?.vectors_config?.params?.size ??
+      info?.result?.params?.vectors?.size ??
+      info?.result?.vectors?.size;
+
+    if (typeof actualDim === 'number' && actualDim !== this.dim) {
+      const msg = `Qdrant collection '${this.collection}' dimension mismatch: expected ${this.dim}, found ${actualDim}`;
+      if (this.autoRecreateOnDimMismatch) {
+        this.logger.warn(msg + ' — recreating collection to match configured embedding dimension (data will be cleared).');
+        const del = await this.safeFetch(url, { method: 'DELETE' } as any);
+        if (!del.ok) {
+          const text = await del.text().catch(() => '');
+          throw new Error(`Failed to delete mismatched collection: ${del.status} ${text?.slice(0, 200)}`);
+        }
+        const createResp = await this.safeFetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vectors: { size: this.dim, distance: this.distance } }),
+        } as any);
+        if (!createResp.ok) {
+          const text = await createResp.text().catch(() => '');
+          throw new Error(`Failed to create collection after deletion: ${createResp.status} ${text?.slice(0, 200)}`);
+        }
+        this.logger.log(`Recreated collection '${this.collection}' with dim=${this.dim}.`);
+      } else {
+        this.logger.error(msg + ' — set QDRANT_AUTO_RECREATE=true to auto-fix, or adjust EMBEDDING_DIM/model to match.');
+        throw new Error(msg);
+      }
+    } else {
+      this.logger.log(`Qdrant collection '${this.collection}' available.${typeof actualDim === 'number' ? ` dim=${actualDim}` : ''}`);
+    }
   }
 
   private async ensureReady(): Promise<void> {
