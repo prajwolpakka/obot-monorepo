@@ -9,11 +9,11 @@ import { NotificationService } from "../notifications/notification.service";
 import { EmbeddingStatusGateway } from "./gateways/embedding-status.gateway";
 import { CreateDocumentDto, UpdateDocumentDto } from "./dto/document.dto";
 import { Document } from "./entities/document.entity";
+import { DocumentEmbeddingPipelineService } from "../ai/document-embedding-pipeline.service";
 
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
-  private readonly brainApiUrl: string;
 
   constructor(
     @InjectRepository(Document)
@@ -21,10 +21,10 @@ export class DocumentsService {
     private configService: ConfigService,
     private notificationService: NotificationService,
     private notificationGateway: NotificationGateway,
-    private embeddingStatusGateway: EmbeddingStatusGateway
+    private embeddingStatusGateway: EmbeddingStatusGateway,
+    private embeddingPipeline: DocumentEmbeddingPipelineService,
   ) {
-    this.brainApiUrl = this.configService.get<string>("BRAIN_API_URL", "http://localhost:4002");
-    this.logger.log(`🧠 Brain API URL configured: ${this.brainApiUrl}`);
+    // No external brain API; embeddings and storage handled in-process
   }
 
   async create(createDocumentDto: CreateDocumentDto, file: Express.Multer.File, userId: string): Promise<Document> {
@@ -91,30 +91,17 @@ export class DocumentsService {
       message: `Processing "${document.name}"...`,
     });
 
-    // Send to brain and wait for completion
+    // Process in-process: extract → chunk → embed → upsert
     try {
-      this.logger.log(`🧠 Sending document to brain for embedding: ${document.filePath}`);
-
-      const absolutePath = require("path").resolve(document.filePath);
-
-      const response = await fetch(`${this.brainApiUrl}/api/embedd/local`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          file_path: [absolutePath],
-          document_id: document.id,
-        }),
+      await this.embeddingPipeline.processDocument({
+        id: document.id,
+        filePath: require("path").resolve(document.filePath),
+        name: document.name,
+        mimeType: document.mimeType,
       });
-
-      if (!response.ok) {
-        throw new Error(`Brain API failed: ${response.status}`);
-      }
-
       this.logger.log(`✅ Document processed successfully: ${document.id}`);
       await this.handleEmbeddingComplete(document.id, true);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`❌ Failed to process document: ${error.message}`, error.stack);
       await this.handleEmbeddingComplete(document.id, false);
     }

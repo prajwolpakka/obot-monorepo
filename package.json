@@ -5,10 +5,8 @@
   "scripts": {
     "dev:backend": "npm run start:dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:ai": "sh -c 'cd ai && poetry run python3 main.py'",
     "dev:chatbot": "cd chatbot-test && python3 -m http.server 4004",
     "install:backend": "npm install --prefix backend",
-    "install:frontend": "npm install --prefix frontend",
-    "install:ai": "sh -c 'cd ai && poetry install'"
+    "install:frontend": "npm install --prefix frontend"
   }
 }

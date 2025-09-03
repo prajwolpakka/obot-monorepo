@@ -10,11 +10,13 @@ import { NotificationModule } from '../notifications/notification.module';
 import { EmbeddingStatusGateway } from './gateways/embedding-status.gateway';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Document]),
     NotificationModule,
+    AiModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

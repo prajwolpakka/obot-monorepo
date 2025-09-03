@@ -8,6 +8,7 @@ import { ChatbotDocument } from '../chatbots/entities/chatbot-document.entity';
 import { ConfigService } from '@nestjs/config';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { ChatAiService } from '../ai/chat-ai.service';
 
 export interface SaveMessageDto {
   content: string;
@@ -24,7 +25,6 @@ interface ChatbotConfig {
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly brainApiUrl: string;
 
   constructor(
     @InjectRepository(Chat)
@@ -37,9 +37,9 @@ export class ChatService {
     private chatbotDocumentRepository: Repository<ChatbotDocument>,
     private configService: ConfigService,
     private subscriptionService: SubscriptionService,
+    private chatAiService: ChatAiService,
   ) {
-    this.brainApiUrl = this.configService.get<string>('BRAIN_API_URL', 'http://localhost:4002');
-    this.logger.log(`🧠 Brain API URL configured: ${this.brainApiUrl}`);
+    // Using in-process AI services (RAG + LLM streaming)
   }
 
   async saveMessage(saveMessageDto: SaveMessageDto): Promise<ChatMessage> {
@@ -204,57 +204,13 @@ export class ChatService {
   // Non-streaming path removed: we exclusively use streaming for chat
 
   async chatWithBrainStream(chatRequest: ChatRequestDto, onChunk: (chunk: string) => void): Promise<void> {
+    // Preserve method name/signature to avoid changing callers.
+    // Now delegates to in-process RAG + OpenRouter streaming.
     try {
-      // Get chatbot configuration if chatbotId is provided
-      let chatbotConfig: ChatbotConfig | null = null;
-      if (chatRequest.chatbotId) {
-        const chatbot = await this.chatbotRepository.findOne({
-          where: { id: chatRequest.chatbotId }
-        });
-        chatbotConfig = {
-          tone: chatbot?.tone,
-          shouldFollowUp: chatbot?.shouldFollowUp
-        };
-      }
-
-      const enhancedRequest = {
-        ...chatRequest,
-        chatbotConfig,
-        stream: true
-      };
-
-      const response = await fetch(`${this.brainApiUrl}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(enhancedRequest),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unable to read response');
-        this.logger.error(`Brain API failed with status ${response.status}: ${errorText}`);
-        throw new Error(`Brain API failed: ${response.status} - ${errorText}`);
-      }
-
-      if (!response.body) {
-        throw new Error('Response body is null');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        onChunk(chunk);
-      }
-      
-      this.logger.log(`✅ Chat stream completed`);
-    } catch (error) {
-      this.logger.error(`❌ Failed to stream chat with brain: ${error.message}`, error.stack);
+      await this.chatAiService.chatStream(chatRequest, onChunk);
+      this.logger.log('✅ Chat stream completed');
+    } catch (error: any) {
+      this.logger.error(`❌ Failed to stream AI response: ${error.message}`, error.stack);
       throw new Error('Failed to stream AI response');
     }
   }

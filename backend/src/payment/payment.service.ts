@@ -19,9 +19,8 @@ export class PaymentService {
     if (!stripeSecretKey) {
       this.logger.warn('⚠️ Stripe secret key not configured');
     } else {
-      this.stripe = new Stripe(stripeSecretKey, {
-        apiVersion: '2025-06-30.basil',
-      });
+      // Use Stripe SDK default API version to avoid TS literal mismatch
+      this.stripe = new Stripe(stripeSecretKey, {});
       this.logger.log('✅ Stripe initialized successfully');
     }
   }
