@@ -43,12 +43,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Status Section - at the top */}
-      <div className="flex items-center justify-between py-3 px-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      <div className="flex items-center justify-between py-3 px-4 bg-muted rounded-lg">
         <div className="space-y-0.5">
           <Label htmlFor="status" className="text-sm font-medium">
             Status
           </Label>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Enable or disable the chatbot</p>
+          <p className="text-xs text-muted-foreground">Enable or disable the chatbot</p>
         </div>
         {isEditing ? (
           <Switch
@@ -95,8 +95,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 />
               </>
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[40px] flex items-center">
-                <p className="text-sm text-gray-700 dark:text-gray-300">{chatbot.name}</p>
+              <div className="bg-muted rounded-lg p-3 min-h-[40px] flex items-center">
+                <p className="text-sm text-foreground">{chatbot.name}</p>
               </div>
             )}
           </div>
@@ -107,7 +107,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             {isEditing ? (
               <div className="space-y-3">
                 <input ref={iconInputRef} type="file" accept="image/*" onChange={handleIconChange} className="hidden" />
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[60px] flex items-center justify-between">
+                <div className="bg-muted rounded-lg p-3 min-h-[60px] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {watchedValues.icon ? (
                       <img
@@ -122,19 +122,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                         className="w-10 h-10 rounded object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center">
-                        <Upload className="h-5 w-5 text-gray-500" />
+                      <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <p className="text-sm text-foreground">
                         {watchedValues.icon
                           ? watchedValues.icon.name
                           : chatbot.iconUrl
                           ? "Current icon"
                           : "No icon uploaded"}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Recommended: 64x64px, PNG or JPG</p>
+                      <p className="text-xs text-muted-foreground">Recommended: 64x64px, PNG or JPG</p>
                     </div>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={() => iconInputRef.current?.click()}>
@@ -144,7 +144,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[40px] flex items-center">
+              <div className="bg-muted rounded-lg p-3 min-h-[40px] flex items-center">
                 {chatbot.iconUrl ? (
                   <div className="flex items-center gap-3">
                     <img
@@ -152,10 +152,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       alt="Chatbot icon"
                       className="w-8 h-8 rounded object-cover"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Custom icon</span>
+                    <span className="text-sm text-foreground">Custom icon</span>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Using default icon</p>
+                  <p className="text-sm text-muted-foreground">Using default icon</p>
                 )}
               </div>
             )}
@@ -169,13 +169,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             {isEditing ? (
               <ColorPicker value={watchedValues.color} onChange={(color) => form.setValue("color", color)} />
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[40px] flex items-center">
+              <div className="bg-muted rounded-lg p-3 min-h-[40px] flex items-center">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-6 h-6 rounded-full border-2 border-gray-300"
+                    className="w-6 h-6 rounded-full border-2 border-border"
                     style={{ backgroundColor: chatbot.color }}
                   />
-                  <span className="text-sm font-mono text-gray-700 dark:text-gray-300">{chatbot.color}</span>
+                  <span className="text-sm font-mono text-foreground">{chatbot.color}</span>
                 </div>
               </div>
             )}
@@ -201,8 +201,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 />
               </>
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[80px]">
-                <p className="text-sm text-gray-700 dark:text-gray-300">{chatbot.welcomeMessage}</p>
+              <div className="bg-muted rounded-lg p-3 min-h-[80px]">
+                <p className="text-sm text-foreground">{chatbot.welcomeMessage}</p>
               </div>
             )}
           </div>
@@ -220,8 +220,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 className="h-10"
               />
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[40px] flex items-center">
-                <p className="text-sm text-gray-700 dark:text-gray-300">{chatbot.placeholder}</p>
+              <div className="bg-muted rounded-lg p-3 min-h-[40px] flex items-center">
+                <p className="text-sm text-foreground">{chatbot.placeholder}</p>
               </div>
             )}
           </div>
@@ -251,19 +251,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </SelectContent>
               </Select>
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[40px] flex items-center">
-                <p className="text-sm text-gray-700 dark:text-gray-300 capitalize">{chatbot.tone}</p>
+              <div className="bg-muted rounded-lg p-3 min-h-[40px] flex items-center">
+                <p className="text-sm text-foreground capitalize">{chatbot.tone}</p>
               </div>
             )}
           </div>
 
           {/* Follow-up Questions */}
-          <div className="flex items-center justify-between py-3 px-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+          <div className="flex items-center justify-between py-3 px-4 bg-muted rounded-lg">
             <div className="space-y-0.5">
               <Label htmlFor="followUp" className="text-sm font-medium">
                 Follow Up Questions
               </Label>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Enable follow-up questions after responses</p>
+              <p className="text-xs text-muted-foreground">Enable follow-up questions after responses</p>
             </div>
             {isEditing ? (
               <Switch
@@ -285,7 +285,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle size={16} className="text-gray-400 cursor-help" />
+                    <HelpCircle size={16} className="text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">
@@ -327,8 +327,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       </div>
                     ))
                   ) : (
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 min-h-[40px] flex items-center">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">No triggers set</p>
+                    <div className="bg-muted rounded-lg p-3 min-h-[40px] flex items-center">
+                      <p className="text-sm text-muted-foreground">No triggers set</p>
                     </div>
                   )}
                 </>
@@ -351,7 +351,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle size={16} className="text-gray-400 cursor-help" />
+                    <HelpCircle size={16} className="text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <div className="max-w-xs space-y-2">
@@ -412,7 +412,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     ))
                   ) : (
                     <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg text-sm">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">No domains set</p>
+                      <p className="text-sm text-muted-foreground">No domains set</p>
                     </div>
                   )}
                 </>

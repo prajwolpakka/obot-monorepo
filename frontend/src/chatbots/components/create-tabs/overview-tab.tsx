@@ -70,14 +70,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ form }) => {
                   <FormLabel>Icon</FormLabel>
                   <FormControl>
                     {field.value ? (
-                      <div className="flex items-center justify-between p-2 border border-gray-300 rounded-md h-10">
+                      <div className="flex items-center justify-between p-2 border rounded-md h-10">
                         <div className="flex items-center gap-2">
                           <img
                             src={URL.createObjectURL(field.value)}
                             alt="Chatbot Icon"
                             className="w-6 h-6 object-cover rounded"
                           />
-                          <span className="text-sm text-gray-600 truncate">{field.value.name}</span>
+                          <span className="text-sm text-muted-foreground truncate">{field.value.name}</span>
                         </div>
                         <button
                           onClick={() => field.onChange(null)}
@@ -99,7 +99,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ form }) => {
                           />
                           <label
                             htmlFor="icon-upload"
-                            className="cursor-pointer w-full text-gray-600 flex gap-2 items-center"
+                            className="cursor-pointer w-full text-muted-foreground flex gap-2 items-center"
                           >
                             <Upload size={15} />
                             <div className="text-sm">Choose a image</div>
@@ -217,7 +217,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ form }) => {
                     <TooltipProvider delayDuration={0}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle size={16} className="text-gray-400 cursor-help" />
+                          <HelpCircle size={16} className="text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
@@ -278,7 +278,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ form }) => {
                     <TooltipProvider delayDuration={0}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle size={16} className="text-gray-400 cursor-help" />
+                          <HelpCircle size={16} className="text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <div className="max-w-xs space-y-2">

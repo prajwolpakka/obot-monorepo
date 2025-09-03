@@ -172,7 +172,7 @@ const CreateChatbotPage: React.FC = () => {
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
-          className="min-w-[400px] max-w-[400px] bg-white flex flex-col"
+          className="min-w-[400px] max-w-[400px] bg-card border flex flex-col"
         >
           {/* Back button inline with tabs */}
           <div className="flex items-center gap-2 p-2">
@@ -216,7 +216,7 @@ const CreateChatbotPage: React.FC = () => {
               You have reached the limit of {currentPlan?.maxChatbots} chatbots for your plan.
             </p>
           )}
-          <div className="border-t bg-white px-4 py-3 flex gap-3">
+          <div className="border-t bg-card px-4 py-3 flex gap-3">
             <Button variant="outline" className="flex-1" onClick={handleRevert} type="button">
               Reset
             </Button>

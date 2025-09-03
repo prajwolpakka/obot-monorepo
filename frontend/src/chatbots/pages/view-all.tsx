@@ -120,7 +120,7 @@ const ChatbotsPage = () => {
                   {[...Array(8)].map((_, i) => (
                     <Card
                       key={i}
-                      className="group hover:shadow-xl transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800 overflow-hidden relative"
+                      className="group hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden relative"
                     >
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <div className="flex items-center gap-3 pr-16">
@@ -228,7 +228,7 @@ const ChatbotsPage = () => {
                     .map((chatbot) => (
                       <Card
                         key={chatbot.id}
-                        className="group hover:shadow-xl transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800 overflow-hidden relative"
+                        className="group hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden relative"
                         onClick={() => {
                           console.log("CARD CLICKED!!");
                           handleCardClick(chatbot.id);
@@ -314,8 +314,8 @@ const ChatbotsPage = () => {
                           <div className="space-y-3">
                             {/* Welcome Message Preview */}
                             <div className="flex items-start gap-2">
-                              <MessageCircle size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                              <MessageCircle size={14} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <p className="text-sm text-muted-foreground line-clamp-2">
                                 {truncateText(chatbot.welcomeMessage, 80)}
                               </p>
                             </div>
@@ -324,7 +324,7 @@ const ChatbotsPage = () => {
                             <div className="w-full h-px" style={{ backgroundColor: chatbot.color + "40" }} />
 
                             {/* Stats */}
-                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <span>
                                   {chatbot.documents?.length || 0} docs / {chatbot.triggers?.length || 0} triggers
@@ -342,11 +342,11 @@ const ChatbotsPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                     <Bot className="h-8 w-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No chatbots found</h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No chatbots found</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     {searchTerm || statusFilter
                       ? "Try adjusting your search or filter criteria to find what you're looking for."
                       : "Get started by creating your first chatbot to engage with your users."}

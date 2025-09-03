@@ -148,22 +148,36 @@
     @apply text-muted-foreground;
   }
 
-  /* Better scrollbar styling for dark mode - Discord inspired */
+  /* Dark mode scrollbars — increase contrast and affordance */
   .dark ::-webkit-scrollbar {
     width: 8px;
   }
 
   .dark ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background-color: hsl(var(--background));
+    border-radius: 8px;
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 4px;
+    background-color: hsl(var(--muted-foreground) / 0.65);
+    border-radius: 8px;
+    border: 2px solid transparent; /* Creates separation from the track */
+    background-clip: padding-box;
+    transition: background-color 150ms ease;
   }
 
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground));
+    background-color: hsl(var(--foreground) / 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--foreground) / 0.7);
+  }
+
+  /* Firefox */
+  .dark * {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.7) hsl(var(--background));
+    scrollbar-width: thin;
   }
 
   /* Better hover states for dark mode */

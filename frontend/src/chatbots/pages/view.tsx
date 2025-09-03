@@ -215,16 +215,16 @@ const ViewChatbotPage = () => {
     return (
       <div className="h-[calc(100vh-54px)] flex flex-col overflow-hidden">
         {/* Fixed Header Skeleton */}
-        <div className="bg-white dark:bg-gray-800 p-4 border-b flex-shrink-0">
+        <div className="bg-background p-4 border-b flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="w-8 h-8 bg-muted rounded animate-pulse" />
+              <div className="h-8 w-64 bg-muted rounded animate-pulse" />
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-24 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="w-24 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="w-24 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="w-24 h-8 bg-muted rounded animate-pulse" />
+              <div className="w-24 h-8 bg-muted rounded animate-pulse" />
+              <div className="w-24 h-8 bg-muted rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -233,10 +233,10 @@ const ViewChatbotPage = () => {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs List Skeleton */}
           <div className="p-4">
-            <div className="w-full max-w-[400px] bg-white dark:bg-gray-800 rounded-lg border p-1 flex gap-1">
-              <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="w-full max-w-[400px] bg-muted rounded-lg border p-1 flex gap-1">
+              <div className="w-full h-8 bg-background rounded animate-pulse" />
+              <div className="w-full h-8 bg-background rounded animate-pulse" />
+              <div className="w-full h-8 bg-background rounded animate-pulse" />
             </div>
           </div>
 
@@ -244,7 +244,7 @@ const ViewChatbotPage = () => {
           <div className="flex-1 overflow-hidden px-4 pb-4">
             <div className="h-full grid grid-cols-3 gap-6">
               {/* Left sidebar skeleton */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border overflow-hidden h-full">
+              <div className="bg-card rounded-lg border overflow-hidden h-full">
                 <div className="h-full overflow-y-auto p-6">
                   <div className="space-y-6">
                     {/* Basic Info Section */}
@@ -323,13 +323,13 @@ const ViewChatbotPage = () => {
   return (
     <div className="h-[calc(100vh-54px)] flex flex-col overflow-hidden">
       {/* Fixed Header */}
-      <div className="bg-white dark:bg-gray-800 p-4 border-b flex-shrink-0">
+      <div className="bg-background p-4 border-b flex-shrink-0">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{chatbot.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{chatbot.name}</h1>
           </div>
 
           {/* Action buttons */}
@@ -400,7 +400,7 @@ const ViewChatbotPage = () => {
         {/* Tabs List */}
         <div className="p-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full max-w-[400px] bg-white dark:bg-gray-800">
+            <TabsList className="w-full max-w-[400px] bg-white ">
               <TabsTrigger
                 value="overview"
                 className="flex items-center gap-2 w-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -432,7 +432,7 @@ const ViewChatbotPage = () => {
             <TabsContent value="overview" className="h-full m-0 overflow-hidden">
               <div className="h-full grid grid-cols-3 gap-6">
                 {/* Left sidebar with scrollable content */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border overflow-hidden h-full">
+                <div className="bg-card rounded-lg border overflow-hidden h-full">
                   <div className="h-full overflow-y-auto p-6">
                     <OverviewTab
                       chatbot={chatbot}
