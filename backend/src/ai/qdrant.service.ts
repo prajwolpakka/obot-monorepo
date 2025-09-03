@@ -35,12 +35,29 @@ export class QdrantService implements OnModuleInit {
     return `http://${this.host}:${this.port}`;
   }
 
+  /**
+   * Wrapper around fetch that turns network/connectivity failures
+   * into a clear, actionable error about Qdrant availability.
+   */
+  private async safeFetch(url: string, init?: any): Promise<Response> {
+    try {
+      // Using undici's global fetch
+      return (await fetch(url, init as any)) as unknown as Response;
+    } catch (err: any) {
+      const code = err?.cause?.code || '';
+      const hint = code ? ` (${code})` : '';
+      const message = `Qdrant connection failed${hint}: cannot reach ${this.baseUrl()}. Is Qdrant running?`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+  }
+
   private async ensureCollection(): Promise<void> {
     const url = `${this.baseUrl()}/collections/${encodeURIComponent(this.collection)}`;
-    const resp = await fetch(url, { method: 'GET' } as any);
+    const resp = await this.safeFetch(url, { method: 'GET' } as any);
     if (resp.status === 404) {
       this.logger.log(`Creating Qdrant collection '${this.collection}' (dim=${this.dim}, distance=${this.distance})`);
-      const createResp = await fetch(url, {
+      const createResp = await this.safeFetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -69,7 +86,7 @@ export class QdrantService implements OnModuleInit {
   async upsert(points: QdrantPoint[]): Promise<void> {
     await this.ensureReady();
     const url = `${this.baseUrl()}/collections/${encodeURIComponent(this.collection)}/points`;
-    const resp = await fetch(url, {
+    const resp = await this.safeFetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ points }),
@@ -105,7 +122,7 @@ export class QdrantService implements OnModuleInit {
     if (filter) body.filter = filter;
     if (opts?.scoreThreshold != null) body.score_threshold = opts.scoreThreshold;
 
-    const resp = await fetch(url, {
+    const resp = await this.safeFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -118,4 +135,3 @@ export class QdrantService implements OnModuleInit {
     return data?.result || [];
   }
 }
-
