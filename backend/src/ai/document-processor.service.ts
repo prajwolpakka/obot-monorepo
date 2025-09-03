@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { execFile } from 'child_process';
 
 @Injectable()
 export class DocumentProcessorService {
@@ -11,12 +12,18 @@ export class DocumentProcessorService {
     const ext = (path.extname(filePath) || '').toLowerCase();
     try {
       if (ext === '.pdf' || mimeType?.includes('pdf')) {
-        // Lazy require to avoid type issues if not installed yet
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pdfParse = require('pdf-parse');
-        const buffer = await fs.readFile(filePath);
-        const data = await pdfParse(buffer);
-        return data.text || '';
+        // Hard-require Poppler's pdftotext. No fallbacks.
+        try {
+          const text = await this.tryPdfToText(filePath);
+          if (!text || !text.trim()) {
+            throw new Error('pdftotext returned empty output');
+          }
+          return text;
+        } catch (err: any) {
+          const msg = `pdftotext failed or not installed: ${err?.message || err}. Install 'poppler-utils' (Ubuntu/Debian) or 'poppler' (macOS).`;
+          this.logger.error(msg);
+          throw new Error(msg);
+        }
       }
       if (ext === '.docx' || mimeType?.includes('wordprocessingml.document')) {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -40,6 +47,26 @@ export class DocumentProcessorService {
     }
   }
 
+  private execFileAsync(cmd: string, args: string[], opts?: any): Promise<{ stdout: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+      execFile(cmd, args, { maxBuffer: 10 * 1024 * 1024, ...opts }, (error, stdout, stderr) => {
+        if (error) return reject(error);
+        resolve({ stdout: String(stdout || ''), stderr: String(stderr || '') });
+      });
+    });
+  }
+
+  private async tryPdfToText(filePath: string): Promise<string> {
+    try {
+      const { stdout } = await this.execFileAsync('pdftotext', ['-layout', '-enc', 'UTF-8', '-nopgbrk', filePath, '-']);
+      return stdout || '';
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // No mutool fallback per app policy
+
   chunkText(text: string, chunkSize = 1000, chunkOverlap = 200): string[] {
     const chunks: string[] = [];
     if (!text) return chunks;
@@ -60,4 +87,3 @@ export class DocumentProcessorService {
     return crypto.createHash('sha256').update(text).digest('hex');
   }
 }
-
