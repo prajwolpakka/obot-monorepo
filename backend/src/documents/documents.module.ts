@@ -25,17 +25,20 @@ import { AiModule } from '../ai/ai.module';
         signOptions: { expiresIn: configService.get('JWT_EXPIRES_IN', '1d') },
       }),
     }),
-    MulterModule.register({
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, cb) => {
-          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-          return cb(null, `${randomName}${extname(file.originalname)}`);
+    MulterModule.registerAsync({
+      useFactory: async (configService: ConfigService) => ({
+        storage: diskStorage({
+          destination: './uploads/documents',
+          filename: (req, file, cb) => {
+            const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+            return cb(null, `${randomName}${extname(file.originalname)}`);
+          },
+        }),
+        limits: {
+          fileSize: 10 * 1024 * 1024, // 10MB
         },
       }),
-      limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB
-      },
+      inject: [ConfigService],
     }),
   ],
   controllers: [DocumentsController],
