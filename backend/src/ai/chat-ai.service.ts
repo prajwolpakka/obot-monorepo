@@ -92,7 +92,7 @@ export class ChatAiService {
           "5. Do not make up information or use general knowledge not present in the context.",
           "6. ALWAYS include source references at the end in this exact format:",
           "   ---",
-          "   Sources: [List the specific files/pages/chapters where this information comes from]",
+          "   Sources: [List the specific files where this information comes from]",
         ].join("\n")
       : 'You are a helpful AI assistant. You only answer questions based on the provided documents. Since no documents are available, respond with: "I looked far and deep but couldn\'t get what you are looking for."';
 
@@ -104,8 +104,6 @@ export class ChatAiService {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ];
-
-    this.logger.log(messages);
 
     // 3) Stream response from OpenRouter
     const resp = await fetch(`${this.orBaseUrl}/chat/completions`, {
