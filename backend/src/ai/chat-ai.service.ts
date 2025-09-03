@@ -72,7 +72,7 @@ export class ChatAiService {
       if (hits.length > 3) this.logger.log(`   • ...and ${hits.length - 3} more chunk(s)`);
     }
 
-    // Build plain context string from payloads (no labels), similar to prior Python impl
+    // Build plain context string from payloads (no labels)
     const contextChunks = hits
       .map((h) => (h?.payload?.page_content ? String(h.payload.page_content) : ""))
       .filter((c) => c && c.trim().length > 0);
@@ -88,13 +88,13 @@ export class ChatAiService {
           "1. Provide SHORT, CONCISE answers (maximum 2-3 sentences)",
           "2. Be direct and to the point",
           "3. If the question can be answered using the provided context, answer it accurately.",
-          '4. If the question cannot be answered from the provided context, respond EXACTLY with: "I looked far and deep but couldn\'t get what you are looking for."',
+          '4. If the question cannot be answered from the provided context, respond EXACTLY with: "I looked far and deep but couldn\'t get what you are looking for." and DO NOT include any sources section.',
           "5. Do not make up information or use general knowledge not present in the context.",
-          "6. ALWAYS include source references at the end in this exact format:",
+          "6. If (and only if) you answer using the provided context, include a final sources section in this exact format:",
           "   ---",
           "   Sources: [List the specific files where this information comes from]",
         ].join("\n")
-      : 'You are a helpful AI assistant. You only answer questions based on the provided documents. Since no documents are available, respond with: "I looked far and deep but couldn\'t get what you are looking for."';
+      : 'You are a helpful AI assistant. You only answer questions based on the provided documents. Since no documents are available, respond with: "I looked far and deep but couldn\'t get what you are looking for." Do not include any sources section.';
 
     const userPrompt = hasContext
       ? `Context from documents:\n${context}\n\nQuestion: ${chatRequest.question}\n\nAnswer:`
