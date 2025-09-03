@@ -1,8 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { ChatRequestDto } from "../chat/dto/chat-request.dto";
 import { EmbeddingsService } from "./embeddings.service";
 import { QdrantService } from "./qdrant.service";
-import { ChatRequestDto } from "../chat/dto/chat-request.dto";
 
 @Injectable()
 export class ChatAiService {
@@ -24,17 +24,53 @@ export class ChatAiService {
   }
 
   async chatStream(chatRequest: ChatRequestDto, onChunk: (chunk: string) => void): Promise<void> {
+    // Short-circuit when no documents are provided: reply directly without calling any model
+    if (!chatRequest.documents || chatRequest.documents.length === 0) {
+      const fallback = "I looked far and deep but couldn't get what you are looking for.";
+      this.logger.warn("No documents provided — skipping model call and replying with fallback message.");
+      onChunk(fallback);
+      return;
+    }
+
     if (!this.orApiKey) throw new Error("OPENROUTER_API_KEY is not configured");
 
     // 1) Embed the question
     const queryVector = await this.embeddings.embedText(chatRequest.question);
 
     // 2) Retrieve similar chunks filtered by provided document IDs
+    this.logger.log(
+      `📋 Searching Qdrant with filter for ${chatRequest.documents?.length || 0} document(s): ${
+        (chatRequest.documents || []).map((d) => d.slice(0, 8)).join(", ") || "none"
+      }`
+    );
     const hits = await this.qdrant.search(queryVector, {
       limit: 8,
       documentIdsFilter: chatRequest.documents,
       scoreThreshold: undefined,
     });
+
+    if (!hits?.length) {
+      this.logger.warn(
+        `❌ No chunks found from Qdrant for provided document IDs (${
+          (chatRequest.documents || []).map((d) => d.slice(0, 8)).join(", ") || "none"
+        }).`
+      );
+    } else {
+      this.logger.log(`📄 Found ${hits.length} relevant chunks`);
+      hits.slice(0, 3).forEach((h, idx) => {
+        const did = String(h?.payload?.id || "").slice(0, 8) || "unknown";
+        const cidx = h?.payload?.chunk_index ?? "?";
+        const preview = String(h?.payload?.page_content || "")
+          .replace(/\n/g, " ")
+          .slice(0, 100);
+        this.logger.log(
+          `   • Chunk ${idx + 1}: doc=${did}, index=${cidx}, score=${
+            h.score?.toFixed?.(3) ?? h.score
+          } — '${preview}...'`
+        );
+      });
+      if (hits.length > 3) this.logger.log(`   • ...and ${hits.length - 3} more chunk(s)`);
+    }
 
     // Build plain context string from payloads (no labels), similar to prior Python impl
     const contextChunks = hits

@@ -21,10 +21,11 @@ export class QdrantService implements OnModuleInit {
   constructor(private readonly config: ConfigService) {
     this.host = this.config.get<string>('QDRANT_HOST', 'localhost');
     this.port = parseInt(this.config.get<string>('QDRANT_PORT', '6333')!, 10);
-    this.collection = this.config.get<string>('QDRANT_COLLECTION_NAME', 'obot_documents');
+    this.collection = this.config.get<string>('QDRANT_COLLECTION_NAME', 'obot_docs');
     this.dim = parseInt(this.config.get<string>('EMBEDDING_DIM', '1024')!, 10);
     const autoFlag = (this.config.get<string>('QDRANT_AUTO_RECREATE', 'true') || '').toLowerCase();
     this.autoRecreateOnDimMismatch = ['1', 'true', 'yes', 'y'].includes(autoFlag);
+    this.logger.log(`Using Qdrant collection '${this.collection}' at ${this.host}:${this.port} (dim=${this.dim})`);
   }
 
   onModuleInit() {

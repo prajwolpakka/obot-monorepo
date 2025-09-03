@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EmbeddingsService } from './embeddings.service';
 import { QdrantService } from './qdrant.service';
 import { DocumentProcessorService } from './document-processor.service';
+import { v5 as uuidv5 } from 'uuid';
 
 export interface DocumentLike {
   id: string;
@@ -36,7 +37,10 @@ export class DocumentEmbeddingPipelineService {
       try {
         const vector = await this.embeddings.embedText(chunk);
         const contentHash = this.processor.hashContent(chunk);
-        const pointId = `${document.id}_chunk_${i}`;
+        // Qdrant point IDs must be unsigned integers or UUIDs.
+        // Use deterministic UUIDv5 based on document id, chunk index, and content hash
+        // to ensure id stability across reprocessing while remaining valid.
+        const pointId = uuidv5(`${document.id}:${i}:${contentHash}`, uuidv5.DNS);
         const payload = {
           id: document.id, // for filtering by document id
           page_content: chunk,
@@ -56,4 +60,3 @@ export class DocumentEmbeddingPipelineService {
     return { chunksProcessed: processed, totalChunks: chunks.length };
   }
 }
-
