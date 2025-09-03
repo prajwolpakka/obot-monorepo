@@ -12,7 +12,7 @@ import { chatbotsRoutes } from "./chatbots/routes";
 import MainLayout from "./common/components/main-layout";
 import SplashScreen from "./common/pages/SplashScreen";
 import { dashboardRoutes } from "./dashboard/routes";
-import { documentsRoutes } from "./documents/routes";
+import { documentsRoutes } from "./library/routes";
 import { settingsRoutes } from "./settings/routes";
 import { selectDarkMode } from "./settings/state/selectors";
 import { subscriptionRoutes } from "./subscription/routes";

@@ -19,11 +19,11 @@ import { Clock, FileCheck, FileIcon, FileText, Loader2, Plus, Search, Trash2, Up
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ColumnDef } from "@tanstack/react-table";
-import { DocumentStatusBadge } from "@/documents/components/document-status-badge";
-import { useGetDocuments } from "@/documents/services/hooks";
-import { useEmbeddingStatus } from "@/documents/hooks/use-embedding-status";
+import { DocumentStatusBadge } from "@/library/components/document-status-badge";
+import { useGetDocuments } from "@/library/services/hooks";
+import { useEmbeddingStatus } from "@/library/hooks/use-embedding-status";
 import { useQueryClient } from "@tanstack/react-query";
-import { documentsUrl } from "@/documents/routes";
+import { documentsUrl } from "@/library/routes";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/common/components/ui/dialog";
 import { Checkbox } from "@/common/components/ui/checkbox";
 
@@ -358,7 +358,7 @@ const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize
                         disabled={isRemoving}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
+                        Remove
                       </Button>
                     </>
                   )}
@@ -389,13 +389,13 @@ const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize
         )}
       </div>
 
-      {/* Single File Delete Dialog */}
+      {/* Single File Remove Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogTitle>Remove File</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this file? This action cannot be undone and will permanently delete the file from your knowledge base.
+              Are you sure you want to remove this file from this chatbot's knowledge base? The file will remain in your Documents library and can be added again later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -404,19 +404,19 @@ const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize
               onClick={confirmSingleDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Delete File
+              Remove File
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Bulk Delete Dialog */}
+      {/* Bulk Remove Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Multiple Files</AlertDialogTitle>
+            <AlertDialogTitle>Remove Multiple Files</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {documentsToDelete.length} file{documentsToDelete.length > 1 ? 's' : ''}? This action cannot be undone and will permanently delete these files from your knowledge base.
+              Are you sure you want to remove {documentsToDelete.length} file{documentsToDelete.length > 1 ? 's' : ''} from this chatbot? The files will remain in your Documents library and you can add them again later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -425,7 +425,7 @@ const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize
               onClick={confirmBulkDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Delete {documentsToDelete.length} File{documentsToDelete.length > 1 ? 's' : ''}
+              Remove {documentsToDelete.length} File{documentsToDelete.length > 1 ? 's' : ''}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

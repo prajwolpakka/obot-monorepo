@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { rename, unlink } from "fs/promises";
 import { extname, join } from "path";
 import { In, Repository } from "typeorm";
+import { DocumentsService } from "../documents/documents.service";
 import { Document } from "../documents/entities/document.entity";
 import { CreateChatbotDto } from "./dto/create-chatbot.dto";
 import { UpdateChatbotDto } from "./dto/update-chatbot.dto";
@@ -20,6 +21,7 @@ export class ChatbotsService {
     @InjectRepository(Document)
     private documentRepository: Repository<Document>,
     private subscriptionService: SubscriptionService,
+    private documentsService: DocumentsService
   ) {}
 
   private transformChatbot(chatbot: Chatbot): any {
@@ -61,7 +63,7 @@ export class ChatbotsService {
     if (plan?.maxChatbots !== undefined) {
       const existing = await this.chatbotRepository.count({ where: { userId } });
       if (existing >= plan.maxChatbots) {
-        throw new BadRequestException('Chatbot limit reached for your current plan');
+        throw new BadRequestException("Chatbot limit reached for your current plan");
       }
     }
 
@@ -90,6 +92,7 @@ export class ChatbotsService {
 
     // Handle uploaded files first
     let uploadedDocumentIds: string[] = [];
+    let createdDocs: Document[] = [];
     if (uploadedFiles && uploadedFiles.length > 0) {
       // Create document entries for uploaded files
       const uploadedDocs = await Promise.all(
@@ -107,6 +110,7 @@ export class ChatbotsService {
         })
       );
       uploadedDocumentIds = uploadedDocs.map((doc) => doc.id);
+      createdDocs = uploadedDocs;
     }
 
     // Combine selected documents and newly uploaded document IDs
@@ -135,6 +139,16 @@ export class ChatbotsService {
       }));
 
       await this.chatbotDocumentRepository.save(chatbotDocuments);
+
+      // Kick off embedding for each newly uploaded document so status + notifications mirror direct uploads
+      for (const doc of createdDocs) {
+        try {
+          await this.documentsService.reprocessDocument(doc.id, userId);
+        } catch (err) {
+          // Continue processing others even if one fails to enqueue
+          console.error(`Failed to start embedding for document ${doc.id}:`, err?.message || err);
+        }
+      }
     }
 
     // Handle icon file
@@ -360,6 +374,15 @@ export class ChatbotsService {
       );
 
       await this.chatbotDocumentRepository.save(chatbotDocuments);
+
+      // Trigger embedding for each new document (match behavior of direct upload)
+      for (const doc of newDocuments) {
+        try {
+          await this.documentsService.reprocessDocument(doc.id, userId);
+        } catch (err) {
+          console.error(`Failed to start embedding for document ${doc.id}:`, err?.message || err);
+        }
+      }
     }
 
     return this.findOne(chatbotId, userId);
@@ -371,27 +394,27 @@ export class ChatbotsService {
     if (documentIds && documentIds.length > 0) {
       // Verify that all documents exist and belong to the user
       const documents = await this.documentRepository.find({
-        where: { 
+        where: {
           id: In(documentIds),
-          userId: userId 
-        }
+          userId: userId,
+        },
       });
 
       if (documents.length !== documentIds.length) {
-        throw new BadRequestException('One or more documents not found or do not belong to you');
+        throw new BadRequestException("One or more documents not found or do not belong to you");
       }
 
       // Check if any documents are already linked
       const existingAssociations = await this.chatbotDocumentRepository.find({
-        where: { 
+        where: {
           chatbotId: chatbotId,
-          documentId: In(documentIds)
-        }
+          documentId: In(documentIds),
+        },
       });
 
       // Filter out documents that are already linked
-      const alreadyLinkedIds = existingAssociations.map(assoc => assoc.documentId);
-      const newDocumentIds = documentIds.filter(id => !alreadyLinkedIds.includes(id));
+      const alreadyLinkedIds = existingAssociations.map((assoc) => assoc.documentId);
+      const newDocumentIds = documentIds.filter((id) => !alreadyLinkedIds.includes(id));
 
       if (newDocumentIds.length > 0) {
         // Create new associations for documents that aren't already linked
@@ -429,13 +452,13 @@ export class ChatbotsService {
           try {
             // Parse the stored domain value to extract hostname and port
             const storedValue = allowedDomain.value;
-            
+
             // If stored value is a full URL (starts with http/https), extract hostname
-            if (storedValue.startsWith('http://') || storedValue.startsWith('https://')) {
+            if (storedValue.startsWith("http://") || storedValue.startsWith("https://")) {
               const url = new URL(storedValue);
               const storedHost = url.host; // includes port if present (e.g., "localhost:4000")
               const storedHostname = url.hostname; // just hostname (e.g., "localhost")
-              
+
               // Check exact match with host (hostname:port) or just hostname
               return domain === storedHost || domain === storedHostname || domain.endsWith("." + storedHostname);
             } else {
@@ -465,18 +488,8 @@ export class ChatbotsService {
     });
 
     if (association) {
+      // Only unlink from the chatbot — keep the document in the user's library
       await this.chatbotDocumentRepository.remove(association);
-
-      // Also remove the document file
-      const document = await this.documentRepository.findOne({ where: { id: documentId } });
-      if (document && document.filePath) {
-        try {
-          await unlink(document.filePath);
-          await this.documentRepository.remove(document);
-        } catch (error) {
-          console.error("Error deleting document file:", error);
-        }
-      }
     }
 
     return this.findOne(chatbotId, userId);
@@ -488,7 +501,7 @@ export class ChatbotsService {
     // Get all chatbot-document associations
     const associations = await this.chatbotDocumentRepository.find({
       where: { chatbotId },
-      relations: ['document']
+      relations: ["document"],
     });
 
     // Get detailed document information
@@ -506,7 +519,7 @@ export class ChatbotsService {
           status: document.status,
           is_processed: document.isProcessed,
           created_at: document.createdAt,
-          updated_at: document.updatedAt
+          updated_at: document.updatedAt,
         };
       })
     );
@@ -516,11 +529,11 @@ export class ChatbotsService {
       chatbot_name: chatbot.name,
       total_documents: documentDetails.length,
       documents: documentDetails,
-      associations_raw: associations.map(assoc => ({
+      associations_raw: associations.map((assoc) => ({
         id: assoc.id,
         chatbot_id: assoc.chatbotId,
-        document_id: assoc.documentId
-      }))
+        document_id: assoc.documentId,
+      })),
     };
   }
 }

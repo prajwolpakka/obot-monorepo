@@ -118,7 +118,7 @@ const SelectDocument: React.FC<DocumentSelectionDialogProps> = ({ selectedDocume
     if (!documents || documents.length === 0) {
       return (
         <div className="flex-1 overflow-y-auto border rounded-lg">
-          <div className="p-8 text-center text-gray-500">No documents available. Upload some documents first.</div>
+          <div className="p-8 text-center text-gray-500">No files in your library. Upload some files first.</div>
         </div>
       );
     }
@@ -127,7 +127,7 @@ const SelectDocument: React.FC<DocumentSelectionDialogProps> = ({ selectedDocume
       return (
         <div className="flex-1 overflow-y-auto border rounded-lg">
           <div className="p-8 text-center text-gray-500">
-            {searchTerm ? "No documents found matching your search." : "No documents available."}
+            {searchTerm ? "No files found matching your search." : "No files available."}
           </div>
         </div>
       );
@@ -174,15 +174,15 @@ const SelectDocument: React.FC<DocumentSelectionDialogProps> = ({ selectedDocume
         <Button variant="outline" className="w-full justify-start text-gray-500 font-normal">
           <FileText size={16} className="mr-2" />
           {selectedDocuments.length > 0 ? (
-            <span className="text-gray-900 font-medium">{selectedDocuments.length} document(s) selected</span>
+            <span className="text-gray-900 font-medium">{selectedDocuments.length} file(s) selected</span>
           ) : (
-            "Select from Documents"
+            "Select from Library"
           )}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Select Documents</DialogTitle>
+          <DialogTitle>Select Files from Library</DialogTitle>
           <DialogDescription>
             Choose documents from your library to add to the chatbot's knowledge base.
           </DialogDescription>

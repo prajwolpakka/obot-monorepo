@@ -1,4 +1,4 @@
-import { IDocument } from "@/documents/models/types";
+import { IDocument } from "@/library/models/types";
 
 export interface IChatbot {
   id: string;

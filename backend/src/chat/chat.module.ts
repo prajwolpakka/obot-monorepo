@@ -7,7 +7,7 @@ import { ChatController } from './chat.controller';
 import { Chat } from './entities/chat.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { Chatbot } from '../chatbots/entities/chatbot.entity';
-import { ChatbotsService } from '../chatbots/chatbots.service';
+import { ChatbotsModule } from '../chatbots/chatbots.module';
 import { ChatbotDocument } from '../chatbots/entities/chatbot-document.entity';
 import { Document } from '../documents/entities/document.entity';
 import { SubscriptionModule } from '../subscription/subscription.module';
@@ -19,9 +19,10 @@ import { AiModule } from '../ai/ai.module';
     forwardRef(() => AuthModule),
     SubscriptionModule,
     AiModule,
+    ChatbotsModule,
   ],
   controllers: [ChatController],
-  providers: [ChatGateway, ChatService, ChatbotsService],
+  providers: [ChatGateway, ChatService],
   exports: [ChatService],
 })
 export class ChatModule {}

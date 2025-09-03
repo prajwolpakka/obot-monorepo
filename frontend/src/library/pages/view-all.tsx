@@ -162,13 +162,13 @@ const ViewAllDocumentsPage = () => {
     return (
       <EmptyPage
         icon={<FileText className="mx-auto h-16 w-16 text-gray-400 mb-6" />}
-        title="No documents found"
-        description="Get started by uploading your first document."
+        title="Your library is empty"
+        description="Get started by uploading your first file."
         dialog={
           <UploadDialog>
             <Button className="flex items-center gap-2">
               <Plus size={20} />
-              Upload Document
+              Upload File
             </Button>
           </UploadDialog>
         }
@@ -180,16 +180,16 @@ const ViewAllDocumentsPage = () => {
     <div className="flex flex-col items-center justify-center py-12">
       <FileText className="mx-auto h-16 w-16 text-gray-400 mb-6" />
       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {savedFilters.search ? "No documents match your search" : "No documents found"}
+        {savedFilters.search ? "No files match your search" : "No files found"}
       </h3>
       <p className="text-gray-500 dark:text-gray-400 mb-8">
-        {savedFilters.search ? "Try adjusting your search criteria." : "Get started by uploading your first document."}
+        {savedFilters.search ? "Try adjusting your search criteria." : "Get started by uploading your first file."}
       </p>
       {!savedFilters.search && (
         <UploadDialog>
           <Button className="flex items-center gap-2">
             <Plus size={20} />
-            Upload Document
+            Upload File
           </Button>
         </UploadDialog>
       )}
@@ -201,7 +201,7 @@ const ViewAllDocumentsPage = () => {
       <Card className="h-full flex flex-col">
         <CardContent className="p-6 flex flex-col h-full min-h-0">
           <div className="space-y-6 flex-1 flex flex-col min-h-0">
-            <PageTitle title="Documents" description="Manage your files and folders" />
+            <PageTitle title="Library" description="Manage your library of files" />
 
             <div className="flex items-center gap-4">
               <TableSearch onSearch={(query) => updateLocalFilter("search", query)} debounceDelay={300} />

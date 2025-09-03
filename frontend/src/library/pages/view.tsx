@@ -147,7 +147,7 @@ const DocumentViewerPage: React.FC = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative max-w-md">
             <strong className="font-bold">Not Found: </strong>
-            <span className="block sm:inline">Document not found</span>
+            <span className="block sm:inline">File not found</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { Button } from "@/common/components/ui/button";
-import SelectDocument from "@/documents/components/select-document";
+import SelectDocument from "@/library/components/select-document";
 import { Bot, FileText, Plus, Upload, X } from "lucide-react";
 import React from "react";
 
@@ -38,7 +38,7 @@ const FilesTab: React.FC<FilesTabProps> = ({
         {/* Document Library Section */}
         <div className="space-y-4">
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Select from Documents</label>
+            <label className="block text-sm font-medium mb-2">Select from Library</label>
             <SelectDocument selectedDocuments={documentFiles} onDocumentsChange={onDocumentsChange} />
           </div>
 

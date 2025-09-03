@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/common/components/ui/sidebar";
-import { Bot, CreditCard, FileText, Home, MessageSquare, Settings } from "lucide-react";
+import { Bot, CreditCard, FolderOpen, Home, MessageSquare, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
 interface NavItem {
@@ -23,7 +23,7 @@ const navItems: NavItem[] = [
   { path: "/dashboard", label: "Dashboard", icon: Home },
   { path: "/chatbots", label: "Chatbots", icon: Bot },
   { path: "/chat", label: "Chats", icon: MessageSquare },
-  { path: "/documents", label: "Documents", icon: FileText },
+  { path: "/documents", label: "Library", icon: FolderOpen },
 ];
 
 const footerItems: NavItem[] = [
@@ -58,7 +58,8 @@ const AppSidebar = () => {
                 isActive={
                   item.path === "/"
                     ? location.pathname === "/"
-                    : location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path + "/"))
+                    : location.pathname === item.path ||
+                      (item.path !== "/" && location.pathname.startsWith(item.path + "/"))
                 }
                 tooltip={item.label}
               >

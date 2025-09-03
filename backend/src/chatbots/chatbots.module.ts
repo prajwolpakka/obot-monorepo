@@ -7,9 +7,10 @@ import { Chatbot } from './entities/chatbot.entity';
 import { ChatbotDocument } from './entities/chatbot-document.entity';
 import { Document } from '../documents/entities/document.entity';
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { DocumentsModule } from '../documents/documents.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Chatbot, ChatbotDocument, Document]), SubscriptionModule],
+  imports: [TypeOrmModule.forFeature([Chatbot, ChatbotDocument, Document]), SubscriptionModule, DocumentsModule],
   controllers: [ChatbotsController, ChatbotsPublicController],
   providers: [ChatbotsService],
   exports: [ChatbotsService],
