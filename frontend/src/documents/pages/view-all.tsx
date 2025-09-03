@@ -10,6 +10,7 @@ import { useMetrics } from "@/dashboard/services/hooks";
 import { ColumnDef } from "@tanstack/react-table";
 import { Download, File, FileText, Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DeleteConfirmationDialog from "../components/delete-confirmation-dialog";
 import { EmbeddingStatusIndicator } from "../components/embedding-status-indicator";
@@ -41,6 +42,7 @@ const ViewAllDocumentsPage = () => {
   
   // Use embedding status hook for general WebSocket connection (without specific document ID)
   const { socket } = useEmbeddingStatus(null);
+  const queryClient = useQueryClient();
 
   // Listen for status updates for all documents
   useEffect(() => {
@@ -51,6 +53,10 @@ const ViewAllDocumentsPage = () => {
         ...prev,
         [update.documentId]: update.status
       }));
+      // When embedding finishes (processed/failed), refetch the documents list
+      if (update.status === 'processed' || update.status === 'failed') {
+        queryClient.invalidateQueries({ queryKey: ["documents"] });
+      }
     };
 
     socket.on('status-update', handleStatusUpdate);
@@ -63,7 +69,7 @@ const ViewAllDocumentsPage = () => {
     return () => {
       socket.off('status-update', handleStatusUpdate);
     };
-  }, [socket, documents]);
+  }, [socket, documents, queryClient]);
 
   const previewDocument = (document: Document) => {
     navigate(documentsUrl.view(document.id));

@@ -15,6 +15,8 @@ import { FileText, Search } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { IDocument } from "../models/types";
 import { useGetDocuments } from "../services/hooks";
+import { useEmbeddingStatus } from "../hooks/use-embedding-status";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DocumentSelectionDialogProps {
   selectedDocuments: string[];
@@ -42,6 +44,20 @@ const SelectDocument: React.FC<DocumentSelectionDialogProps> = ({ selectedDocume
   const [tempSelectedDocs, setTempSelectedDocs] = useState<string[]>(selectedDocuments);
 
   const { data: documents, isLoading, error } = useGetDocuments();
+  const { socket } = useEmbeddingStatus(null);
+  const queryClient = useQueryClient();
+
+  // Refetch documents when any embedding completes
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (update: { documentId: string; status: 'pending' | 'embedding' | 'processed' | 'failed' }) => {
+      if (update.status === 'processed' || update.status === 'failed') {
+        queryClient.invalidateQueries({ queryKey: ["documents"] });
+      }
+    };
+    socket.on('status-update', handler);
+    return () => { socket.off('status-update', handler); };
+  }, [socket, queryClient]);
 
   // Update temp selected docs when selectedDocuments prop changes
   useEffect(() => {

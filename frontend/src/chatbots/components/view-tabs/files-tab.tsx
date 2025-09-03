@@ -16,10 +16,14 @@ import {
 } from "@/common/components/ui/alert-dialog";
 import { useToast } from "@/common/components/ui/use-toast";
 import { Clock, FileCheck, FileIcon, FileText, Loader2, Plus, Search, Trash2, Upload, Link } from "lucide-react";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ColumnDef } from "@tanstack/react-table";
 import { DocumentStatusBadge } from "@/documents/components/document-status-badge";
 import { useGetDocuments } from "@/documents/services/hooks";
+import { useEmbeddingStatus } from "@/documents/hooks/use-embedding-status";
+import { useQueryClient } from "@tanstack/react-query";
+import { documentsUrl } from "@/documents/routes";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/common/components/ui/dialog";
 import { Checkbox } from "@/common/components/ui/checkbox";
 
@@ -40,6 +44,7 @@ interface FilesTabProps {
 }
 
 const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize }) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,6 +60,27 @@ const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize
   const { mutate: linkDocuments, isPending: isLinking } = useLinkDocuments();
   const { mutate: removeDocument, isPending: isRemoving } = useRemoveDocument();
   const { data: allDocuments, isLoading: isLoadingDocuments } = useGetDocuments();
+  const { socket } = useEmbeddingStatus(null);
+  const queryClient = useQueryClient();
+
+  // Refetch document library and chatbot details when embedding completes
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (update: { documentId: string; status: 'pending' | 'embedding' | 'processed' | 'failed' }) => {
+      if (update.status === 'processed' || update.status === 'failed') {
+        // Refresh library list and this chatbot's data so UI reflects latest status
+        queryClient.invalidateQueries({ queryKey: ["documents"] });
+        queryClient.invalidateQueries({ queryKey: ["chatbots", chatbot.id] });
+      }
+    };
+    socket.on('status-update', handler);
+    // Subscribe to current chatbot document ids for targeted updates
+    chatbot.documents?.forEach((doc: any) => socket.emit('subscribe-document', doc.id));
+    return () => {
+      socket.off('status-update', handler);
+      chatbot.documents?.forEach((doc: any) => socket.emit('unsubscribe-document', doc.id));
+    };
+  }, [socket, chatbot?.id, queryClient, chatbot?.documents]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -317,6 +343,7 @@ const FilesTab: React.FC<FilesTabProps> = ({ chatbot, formatDate, formatFileSize
                 <DataTable
                   data={filteredDocuments}
                   columns={columns}
+                  onRowClick={(row: Document) => navigate(documentsUrl.view(row.id))}
                   emptyState={emptyState}
                   bulkAction={(selectedRows, clearSelection) => (
                     <>

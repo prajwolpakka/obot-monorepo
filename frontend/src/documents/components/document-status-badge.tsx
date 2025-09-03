@@ -1,5 +1,5 @@
 import { Badge } from "@/common/components/ui/badge";
-import { useNotificationStore } from "@/notifications/hooks/use-notification-store";
+import { useNotifications } from "@/notifications";
 import { AlertCircle, Clock, FileCheck, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -13,13 +13,13 @@ interface DocumentStatusBadgeProps {
 
 export const DocumentStatusBadge: React.FC<DocumentStatusBadgeProps> = ({ documentId, initialStatus, isProcessed }) => {
   const [status, setStatus] = useState<DocumentStatus>(initialStatus);
-  const notifications = useNotificationStore();
+  const { notifications } = useNotifications();
 
   useEffect(() => {
     // Listen for document status updates via notifications
-    const latestNotification = notifications.notifications
+    const latestNotification = notifications
       .filter((n) => n.documentId === documentId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      .sort((a, b) => (new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime()))[0];
 
     if (latestNotification) {
       if (latestNotification.type === "document-embedding-started") {
