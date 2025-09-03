@@ -12,6 +12,13 @@
     document.head.appendChild(script);
   }
 
+  // Load marked.js for markdown rendering if not already loaded
+  if (!window.marked) {
+    const mdScript = document.createElement("script");
+    mdScript.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+    document.head.appendChild(mdScript);
+  }
+
   // Chatbot class
   function Chatbot(options) {
     // Core required props
@@ -51,6 +58,7 @@
     this.messages = [];
     this.sessionId = this.generateSessionId();
     this.configLoaded = false;
+    this.awaitingResponse = false;
 
     // DOM references
     this.container = null;
@@ -214,9 +222,35 @@
       this.updateUIWithConfig();
     });
 
+    // Handle streaming response start
+    this.socket.on("message-start", (data) => {
+      // Prepare for incoming chunks but keep thinking indicator until content arrives
+      this.currentStreamId = data.messageId;
+    });
+
+    // Handle streaming chunks
+    this.socket.on("message-chunk", (data) => {
+      // On first chunk, create message container and remove thinking indicator
+      if (!document.getElementById(`streaming-${data.messageId}`)) {
+        this.startStreamingMessage(data.messageId, data.timestamp);
+        this.removeThinkingIndicator();
+      }
+      this.updateStreamingMessage(data.messageId, data.chunk, data.fullResponse);
+    });
+
+    // Handle streaming completion
+    this.socket.on("message-complete", (data) => {
+      this.completeStreamingMessage(data.messageId, data.finalContent);
+      this.awaitingResponse = false;
+      this.sendButton.disabled = false;
+    });
+
+    // Fallback for non-streaming responses (backward compatibility)
     this.socket.on("message-response", (data) => {
-      this.removeLoadingIndicator();
-      this.addMessageWithTyping("Bot", data.message, data.references);
+      this.removeThinkingIndicator();
+      this.addMessageWithReferences("Bot", data.message);
+      this.awaitingResponse = false;
+      this.sendButton.disabled = false;
     });
 
     this.socket.on("chat-history", (data) => {
@@ -229,15 +263,27 @@
     });
 
     this.socket.on("message-error", (data) => {
-      this.removeLoadingIndicator();
-      this.addMessage("Bot", "Sorry, something went wrong!");
+      this.removeThinkingIndicator();
+
+      // Remove any streaming placeholder
+      const streamingMessage = data.messageId
+        ? this.messagesDiv.querySelector(`#streaming-${data.messageId}`)
+        : this.messagesDiv.querySelector('[id^="streaming-"]');
+      if (streamingMessage) {
+        streamingMessage.remove();
+      }
+      this.addMessageWithReferences("Bot", "Sorry, something went wrong! Please try again.");
+
       console.error("Chat error:", data.error);
+
+      this.awaitingResponse = false;
+      this.sendButton.disabled = false;
     });
 
     this.socket.on("connect_error", (error) => {
       console.error("Socket connection error:", error);
       this.removeLoadingIndicator();
-      this.addMessage("Bot", "Connection error. Please try again.");
+      this.addMessageWithReferences("Bot", "Connection error. Please try again.");
     });
   };
 
@@ -253,7 +299,7 @@
 
     // Add initial message for demo
     if (this.config.initialMessage) {
-      this.addMessage("Bot", this.config.initialMessage);
+      this.addMessageWithReferences("Bot", this.config.initialMessage);
     }
 
     this.updateTriggerButtons();
@@ -276,9 +322,14 @@
     const titleElement = this.container.querySelector(".chat-header-title");
     if (titleElement) titleElement.textContent = this.config.chatbotName;
 
-    // Update placeholder
+    // Update placeholder and enforce light input styling (also for dark pages)
     const inputElement = this.container.querySelector(".chat-input");
-    if (inputElement) inputElement.placeholder = this.config.placeholder;
+    if (inputElement) {
+      inputElement.placeholder = this.config.placeholder;
+      // Keep input readable on dark-themed hosts
+      inputElement.style.backgroundColor = "#ffffff";
+      inputElement.style.color = "#111111";
+    }
 
     // Update image
     const chatIcon = this.container.querySelector(".chat-icon");
@@ -340,13 +391,13 @@
 
     // Add initial message if it exists and no history
     if (this.config.initialMessage && messages.length === 0) {
-      this.addMessage("Bot", this.config.initialMessage);
+      this.addMessageWithReferences("Bot", this.config.initialMessage);
     }
 
     // Load historical messages
     messages.forEach((msg) => {
       const sender = msg.sender === "user" ? "You" : "Bot";
-      this.addMessage(sender, msg.content, msg.references);
+      this.addMessageWithReferences(sender, msg.content);
     });
 
     // Update user message colors after loading history
@@ -396,7 +447,7 @@
 
     // Add initial message if it exists
     if (this.config.initialMessage) {
-      this.addMessage("Bot", this.config.initialMessage);
+      this.addMessageWithReferences("Bot", this.config.initialMessage);
     }
   };
 
@@ -636,9 +687,8 @@
     if (this.closeButton) {
       this.closeButton.addEventListener("click", this.toggleChat.bind(this));
     }
-
-    this.input.addEventListener("keypress", this.handleInput.bind(this));
     this.sendButton.addEventListener("click", this.handleSend.bind(this));
+    this.input.addEventListener("keydown", this.handleInputKeyDown.bind(this));
 
     // Setup triggers
     this.updateTriggerButtons();
@@ -650,9 +700,6 @@
       ? this.demoProps.color
       : "#4A2C7E";
     this.updateTriggerHoverColor(initialColor);
-
-    // Add custom styles for thinking message and references
-    this.addCustomStyles();
   };
 
   // Hide the trigger area
@@ -674,6 +721,10 @@
   Chatbot.prototype.sendMessage = function () {
     const userMessage = this.input.value.trim();
     if (!userMessage) return;
+    if (this.awaitingResponse) return;
+
+    this.awaitingResponse = true;
+    this.sendButton.disabled = true;
 
     this.addMessage("You", userMessage);
     this.hideTriggerArea();
@@ -686,10 +737,12 @@
       // Demo mode - show preview message
       setTimeout(() => {
         this.addMessageWithTyping("Bot", "🚀 This is preview mode. After integration, you'll get AI responses!");
+        this.awaitingResponse = false;
+        this.sendButton.disabled = false;
       }, 500);
     } else {
-      // Production mode - send via socket
-      this.showLoadingIndicator();
+      // Production mode - show thinking indicator immediately
+      this.showThinkingIndicator();
 
       if (this.socket && this.socket.connected) {
         this.socket.emit("send-message", {
@@ -701,16 +754,136 @@
         // Fallback if socket not connected
         console.warn("Socket not connected, using fallback");
         setTimeout(() => {
-          this.removeLoadingIndicator();
+          this.removeThinkingIndicator();
           this.addMessageWithTyping(
             "Bot",
             `Thanks for your message! You said: "${userMessage}". I'm currently in offline mode, but I'd love to help you when I'm back online. Please try again in a moment or check your internet connection.`
           );
+          this.awaitingResponse = false;
+          this.sendButton.disabled = false;
         }, 1000);
       }
     }
 
     this.input.value = "";
+  };
+
+  // Show thinking indicator as a message box
+  Chatbot.prototype.showThinkingIndicator = function () {
+    // Remove any existing thinking indicator
+    this.removeThinkingIndicator();
+
+    // Create a thinking indicator that looks like a message box
+    const thinkingIndicator = document.createElement("div");
+    thinkingIndicator.classList.add("message-container", "bot-message", "thinking-container");
+    thinkingIndicator.id = "thinking-indicator";
+    thinkingIndicator.innerHTML = `
+      <div class="message-content thinking-message">
+        <div class="thinking-indicator">
+          <span class="thinking-spinner"></span>
+          <span class="thinking-text">Thinking...</span>
+        </div>
+      </div>
+    `;
+
+    this.messagesDiv.appendChild(thinkingIndicator);
+    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+  };
+
+  // Remove thinking indicator
+  Chatbot.prototype.removeThinkingIndicator = function () {
+    const thinkingIndicator = this.messagesDiv.querySelector("#thinking-indicator");
+    if (thinkingIndicator) {
+      thinkingIndicator.remove();
+    }
+  };
+
+  // Start streaming message
+  Chatbot.prototype.startStreamingMessage = function (messageId, timestamp) {
+    // Remove typing indicator
+    const typingIndicator = this.messagesDiv.querySelector("#typing-indicator");
+    if (typingIndicator) {
+      typingIndicator.remove();
+    }
+
+    // Create streaming message container
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message-container", "bot-message");
+    messageElement.id = `streaming-${messageId}`;
+
+    // Message bubble uses default bot styling (white background)
+    messageElement.innerHTML = `
+      <div class="message-content">
+        <span id="content-${messageId}"></span>
+        <span id="cursor-${messageId}" class="typing-cursor">|</span>
+      </div>
+    `;
+
+    this.messagesDiv.appendChild(messageElement);
+    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+
+    // Add cursor blinking animation
+    if (!document.getElementById("streaming-cursor-style")) {
+      const style = document.createElement("style");
+      style.id = "streaming-cursor-style";
+      style.textContent = `
+        @keyframes streaming-blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+        .typing-cursor {
+          animation: streaming-blink 1s infinite;
+          font-weight: normal;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  };
+
+  // Update streaming message with new chunk
+  Chatbot.prototype.updateStreamingMessage = function (messageId, chunk, fullResponse) {
+    const contentElement = document.getElementById(`content-${messageId}`);
+    if (contentElement) {
+      contentElement.textContent = fullResponse;
+      // Scroll to bottom
+      this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+    }
+  };
+
+  // Complete streaming message and add references
+  Chatbot.prototype.completeStreamingMessage = function (messageId, finalContent) {
+    // Remove cursor
+    const cursorElement = document.getElementById(`cursor-${messageId}`);
+    if (cursorElement) {
+      cursorElement.remove();
+    }
+
+    // Update final content
+    const contentElement = document.getElementById(`content-${messageId}`);
+    if (contentElement) {
+      // Parse and display with references
+      const { answer, references } = this.parseResponseWithReferences(finalContent);
+
+      // Update the content with markdown rendering
+      contentElement.innerHTML = this.renderMarkdown(answer);
+
+      // Add references if they exist
+      if (references && references.length > 0) {
+        const contentContainer = contentElement.parentElement;
+        const referenceDiv = document.createElement("div");
+        referenceDiv.classList.add("message-references");
+        references.forEach(ref => referenceDiv.appendChild(this.createReferenceItem(ref)));
+        if (contentContainer) {
+          contentContainer.appendChild(referenceDiv);
+        }
+      }
+
+      // Scroll to bottom
+      this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+    }
+
+    // Update triggers
+    this.updateTriggerButtons();
   };
 
   // Toggle the chat window in floating mode
@@ -720,9 +893,118 @@
     this.toggleButton.style.transform = isVisible ? "scale(1)" : "scale(1.1)";
   };
 
-  // Add a message to the chat
-  Chatbot.prototype.addMessage = function (sender, text, references = null) {
-    this.messages.push({ sender, text, references });
+  // Add a message with references support
+  Chatbot.prototype.addMessageWithReferences = function (sender, text) {
+    // Parse the response to separate answer from references
+    const { answer, references } = this.parseResponseWithReferences(text);
+
+    this.messages.push({ sender, text: answer, references });
+
+    const messageClass = sender === "You" ? "user-message" : "bot-message";
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message-container", messageClass);
+
+    // Get the appropriate color based on mode and config state
+    let color;
+    if (this.mode === "demo") {
+      color = this.demoProps.color;
+    } else if (this.config && this.config.color) {
+      // Use config color if it exists, regardless of configLoaded state
+      color = this.config.color;
+    } else {
+      color = "#4A2C7E"; // fallback
+    }
+
+    // Create message content element
+    const contentDiv = document.createElement("div");
+    contentDiv.classList.add("message-content");
+    if (sender === "You") {
+      contentDiv.style.backgroundColor = color;
+      contentDiv.style.color = "white";
+      contentDiv.innerHTML = answer;
+    } else {
+      contentDiv.innerHTML = this.renderMarkdown(answer);
+    }
+
+    // Add references below message if they exist
+    if (references && references.length > 0) {
+      const referenceDiv = document.createElement("div");
+      referenceDiv.classList.add("message-references");
+      references.forEach(ref => referenceDiv.appendChild(this.createReferenceItem(ref)));
+      contentDiv.appendChild(referenceDiv);
+    }
+
+    messageElement.appendChild(contentDiv);
+
+    this.messagesDiv.appendChild(messageElement);
+    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+
+    // Update triggers after adding message
+    this.updateTriggerButtons();
+  };
+
+  // Create reference DOM element with icon and filename
+  Chatbot.prototype.createReferenceItem = function (fullRef) {
+    const filenameMatch = fullRef.match(/^([^\n]+)/);
+    const filename = filenameMatch ? filenameMatch[1].trim() : fullRef;
+    const shortName = filename.split(/[\/]/).pop();
+
+    const item = document.createElement("div");
+    item.classList.add("reference-item");
+    item.title = fullRef;
+    item.innerHTML = `
+      <svg class="reference-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.19 9.19a2 2 0 0 1-2.83-2.83l8.48-8.48"></path>
+      </svg>
+      <span class="reference-text">${shortName}</span>
+    `;
+    return item;
+  };
+
+  // Parse response to separate answer from references
+  Chatbot.prototype.parseResponseWithReferences = function (text) {
+    // Look for the reference separator (---)
+    const separatorIndex = text.indexOf('\n---\n');
+
+    if (separatorIndex === -1) {
+      // No references found, return the whole text as answer
+      return { answer: text, references: null };
+    }
+
+    const answer = text.substring(0, separatorIndex).trim();
+    const referencesText = text.substring(separatorIndex + 5).trim();
+
+    // Parse references (assuming format: "Sources: [file1, file2, ...]")
+    const references = [];
+    if (referencesText.toLowerCase().startsWith('sources:')) {
+      const sourcesText = referencesText.substring(8).trim();
+      // Split by comma and clean up
+      const sources = sourcesText
+        .split(',')
+        .map(source => source.trim().replace(/^\[|\]$/g, ''))
+        .filter(source => source && source.toLowerCase() !== 'none');
+      references.push(...sources);
+    }
+
+    return { answer, references: references.length > 0 ? references : null };
+  };
+
+  // Convert markdown text to HTML with a graceful fallback
+  Chatbot.prototype.renderMarkdown = function (text) {
+    if (window.marked) {
+      if (typeof window.marked.parse === "function") {
+        return window.marked.parse(text);
+      }
+      if (typeof window.marked === "function") {
+        return window.marked(text);
+      }
+    }
+    return text.replace(/\n/g, "<br>");
+  };
+
+  // Add a message to the chat (legacy method)
+  Chatbot.prototype.addMessage = function (sender, text) {
+    this.messages.push({ sender, text });
 
     const messageClass = sender === "You" ? "user-message" : "bot-message";
     const messageElement = document.createElement("div");
@@ -747,27 +1029,16 @@
       finalColor: color,
     });
 
-    const backgroundStyle = sender === "You" ? `style="background-color: ${color}; color: white;"` : "";
-    let messageHTML = `<div class="message-content" ${backgroundStyle}>${text}</div>`;
-
-    // Add references if provided and sender is Bot
-    if (sender === "Bot" && references && references.length > 0) {
-      messageHTML += `
-        <div class="message-references" style="margin-top: 12px; font-size: 12px; color: #666;">
-          <div style="font-weight: 500; margin-bottom: 6px;">References:</div>
-          ${references.map((ref, index) => `
-            <div class="reference-item" style="margin-bottom: 4px;">
-              <a href="${ref.url || '#'}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: none;">
-                ${index + 1}. ${ref.title || ref.url || 'Reference'}
-              </a>
-            </div>
-          `).join('')}
-        </div>
-      `;
+    const contentDiv = document.createElement("div");
+    contentDiv.classList.add("message-content");
+    if (sender === "You") {
+      contentDiv.style.backgroundColor = color;
+      contentDiv.style.color = "white";
+      contentDiv.textContent = text;
+    } else {
+      contentDiv.innerHTML = this.renderMarkdown(text);
     }
-
-    messageElement.innerHTML = messageHTML;
-
+    messageElement.appendChild(contentDiv);
     this.messagesDiv.appendChild(messageElement);
     this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
 
@@ -776,8 +1047,8 @@
   };
 
   // Add a message with typing animation (like Gemini)
-  Chatbot.prototype.addMessageWithTyping = function (sender, text, references = null) {
-    this.messages.push({ sender, text, references });
+  Chatbot.prototype.addMessageWithTyping = function (sender, text) {
+    this.messages.push({ sender, text });
 
     const messageClass = sender === "You" ? "user-message" : "bot-message";
     const messageElement = document.createElement("div");
@@ -831,29 +1102,7 @@
         setTimeout(typeWriter, delay);
       } else {
         // Remove cursor and show final text
-        messageContent.innerHTML = text;
-
-        // Add references if provided and sender is Bot
-        if (sender === "Bot" && references && references.length > 0) {
-          const referencesDiv = document.createElement("div");
-          referencesDiv.classList.add("message-references");
-          referencesDiv.style.marginTop = "12px";
-          referencesDiv.style.fontSize = "12px";
-          referencesDiv.style.color = "#666";
-
-          referencesDiv.innerHTML = `
-            <div style="font-weight: 500; margin-bottom: 6px;">References:</div>
-            ${references.map((ref, index) => `
-              <div class="reference-item" style="margin-bottom: 4px;">
-                <a href="${ref.url || '#'}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: none;">
-                  ${index + 1}. ${ref.title || ref.url || 'Reference'}
-                </a>
-              </div>
-            `).join('')}
-          `;
-          messageElement.appendChild(referencesDiv);
-        }
-
+        messageContent.innerHTML = this.renderMarkdown(text);
         this.updateTriggerButtons();
       }
     };
@@ -878,17 +1127,15 @@
     typeWriter();
   };
 
-  // Show loading indicator as a message box
+  // Show loading indicator
   Chatbot.prototype.showLoadingIndicator = function () {
     const loadingElement = document.createElement("div");
     loadingElement.classList.add("message-container", "bot-message", "loading-container");
     loadingElement.id = "chat-loading";
     loadingElement.innerHTML = `
-      <div class="message-content thinking-message">
-        <div class="thinking-indicator">
-          <span class="thinking-spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid #666; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
-          <span class="thinking-text">Thinking...</span>
-        </div>
+      <div class="loading-indicator">
+        <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid #666; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+        <span class="loading-text">Thinking...</span>
       </div>
     `;
     this.messagesDiv.appendChild(loadingElement);
@@ -903,55 +1150,13 @@
     }
   };
 
-  // Add custom styles for thinking message and references
-  Chatbot.prototype.addCustomStyles = function () {
-    if (document.getElementById("chatbot-custom-styles")) return;
-
-    const style = document.createElement("style");
-    style.id = "chatbot-custom-styles";
-    style.textContent = `
-      .thinking-message {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+  // Handle Enter key to send message when ready
+  Chatbot.prototype.handleInputKeyDown = function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!this.awaitingResponse) {
+        this.handleSend();
       }
-
-      .thinking-indicator {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .thinking-spinner {
-        flex-shrink: 0;
-      }
-
-      .thinking-text {
-        color: #666;
-        font-style: italic;
-      }
-
-      .message-references {
-        border-top: 1px solid #e0e0e0;
-        padding-top: 8px;
-        margin-top: 12px;
-      }
-
-      .reference-item a:hover {
-        text-decoration: underline !important;
-      }
-
-      .reference-item {
-        line-height: 1.4;
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
-  // Handle input keypress (Enter key)
-  Chatbot.prototype.handleInput = function (e) {
-    if (e.key === "Enter" && this.input.value.trim()) {
-      this.sendMessage();
     }
   };
 

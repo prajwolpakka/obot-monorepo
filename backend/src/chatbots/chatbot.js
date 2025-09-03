@@ -322,9 +322,14 @@
     const titleElement = this.container.querySelector(".chat-header-title");
     if (titleElement) titleElement.textContent = this.config.chatbotName;
 
-    // Update placeholder
+    // Update placeholder and enforce light input styling (also for dark pages)
     const inputElement = this.container.querySelector(".chat-input");
-    if (inputElement) inputElement.placeholder = this.config.placeholder;
+    if (inputElement) {
+      inputElement.placeholder = this.config.placeholder;
+      // Keep input readable on dark-themed hosts
+      inputElement.style.backgroundColor = "#ffffff";
+      inputElement.style.color = "#111111";
+    }
 
     // Update image
     const chatIcon = this.container.querySelector(".chat-icon");

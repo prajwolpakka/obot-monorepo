@@ -149,6 +149,14 @@
   border-radius: 5px;
   outline: none;
   padding: 10px;
+  /* Keep input white even in dark themes */
+  background-color: #ffffff;
+  color: #111111;
+}
+
+/* Ensure placeholder remains readable on white background */
+.chat-input::placeholder {
+  color: #666666;
 }
 
 .chat-send {
